@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <ImageView
+        android:id="@+id/logo_chronos"
+        android:layout_width="250dp"
+        android:layout_height="250dp"
+        android:layout_centerInParent="true"
+        android:src="@drawable/logo_chronos"
+        android:contentDescription="Chronos Logo" />
+
+    <TextView
+        android:id="@+id/text_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/logo_chronos"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="20dp"
+        android:text="CHRONOS DIARY"
+        android:textColor="@color/neon_green"
+        android:textSize="28sp"
+        android:fontFamily="@font/orbitron_bold"
+        android:letterSpacing="0.2" />
+
+    <TextView
+        android:id="@+id/text_ars"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="150dp"
+        android:text="Developed by A.R.Silva"
+        android:textColor="@color/neon_purple"
+        android:textSize="14sp"
+        android:fontFamily="@font/orbitron_black"
+        android:alpha="0.7" />
+
+</RelativeLayout>
