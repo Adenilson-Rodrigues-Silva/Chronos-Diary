@@ -13,6 +13,14 @@
     <color name="card_dark">#121212</color>
     <color name="neon_purple">#BC13FE</color>
 
+    <color name="card_background">#1A1A1A</color>
+    <color name="cyber_purple">#BC00FF</color>
+
+    <color name="black_bg">#050505</color>
+
+    <color name="neon_green_dim">#3300FF00</color>
+    <color name="cyber_pink">#FF00FF</color>
+    <color name="terminal_gray">#A0A0A0</color>
 
 
 </resources>

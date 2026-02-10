@@ -1,13 +1,15 @@
-package com.example.chronosdiary
+package com.example.chronosdiary // <--- ESSA LINHA É A MAIS IMPORTANTE
 
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.view.animation.AnimationUtils
-import android.widget.ImageView
+import android.view.View
+import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.example.chronosdiary.MainActivity
+import com.example.chronosdiary.R
 
 class SplashActivity : AppCompatActivity() {
 
@@ -15,38 +17,46 @@ class SplashActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_splash)
 
-        // Esconde a barra de cima para ficar full screen
-        supportActionBar?.hide()
+        val textTitle = findViewById<TextView>(R.id.text_title)
+        val btnStart = findViewById<Button>(R.id.btn_start)
 
-        val logo = findViewById<ImageView>(R.id.logo_chronos)
-        val title = findViewById<TextView>(R.id.text_title)
-        val textToType = "CHRONOS DIARY"
+        // Texto que será "digitado"
+        val fullText = "CHRONOS DIARY"
+        textTitle.text = "" // Começa vazio
+        btnStart.visibility = View.INVISIBLE // Botão oculto no início
 
-        // 1. Inicia a animação de pulso no logo
-        val pulseAnim = AnimationUtils.loadAnimation(this, R.anim.pulse)
-        logo.startAnimation(pulseAnim)
-
-        // 2. Efeito Terminal para o Título
-        title.text = ""
-        var index = 0
-        val handler = Handler(Looper.getMainLooper())
-
-        val runner = object : Runnable {
-            override fun run() {
-                if (index <= textToType.length) {
-                    title.text = textToType.substring(0, index)
-                    index++
-                    handler.postDelayed(this, 150) // Velocidade da digitação
-                }
-            }
+        // 1. Inicia a animação de digitação
+        animateTyping(textTitle, fullText) {
+            // 2. Quando terminar de digitar, mostra o botão com um efeito suave
+            btnStart.visibility = View.VISIBLE
+            btnStart.alpha = 0f
+            btnStart.animate().alpha(1f).setDuration(1000).start()
         }
-        handler.post(runner)
 
-        // 3. Timer para ir para a próxima tela
-        handler.postDelayed({
+        // 3. Espera o clique para ir para a próxima tela (Digital)
+        btnStart.setOnClickListener {
             val intent = Intent(this, MainActivity::class.java)
             startActivity(intent)
             finish()
-        }, 4000) // 4.0 segundos para dar tempo de ver tudo
+        }
+    }
+
+    // Função que faz o efeito de "Máquina de Escrever"
+    private fun animateTyping(textView: TextView, text: String, onFinished: () -> Unit) {
+        val handler = Handler(Looper.getMainLooper())
+        var index = 0
+
+        val runnable = object : Runnable {
+            override fun run() {
+                if (index <= text.length) {
+                    textView.text = text.substring(0, index)
+                    index++
+                    handler.postDelayed(this, 150) // Velocidade da digitação (150ms)
+                } else {
+                    onFinished() // Chama a função quando acaba
+                }
+            }
+        }
+        handler.post(runnable)
     }
 }

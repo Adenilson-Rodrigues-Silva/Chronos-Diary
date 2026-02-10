@@ -36,13 +36,19 @@ android {
 }
 
 dependencies {
-
+    // Use as referências do Version Catalog (libs) que já estão no seu projeto
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.activity)
-    implementation(libs.androidx.constraintlayout)
+    implementation("androidx.constraintlayout:constraintlayout:2.1.3") // ESTA é a que o XML precisa
+
+    // Mantenha a Biometria (recomendo usar a 1.1.0 estável em vez da alpha para evitar erros)
+    implementation("androidx.biometric:biometric:1.1.0")
+
+    // Testes
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
 }
