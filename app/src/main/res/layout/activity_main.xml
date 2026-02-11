@@ -64,5 +64,19 @@
         app:elevation="12dp"
         app:fabSize="normal"
         app:tint="#000000" />
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_mic"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="32dp"
+        android:src="@android:drawable/ic_btn_speak_now"
+        app:backgroundTint="#000000"
+        app:fabCustomSize="80dp"
+        app:maxImageSize="40dp"
+        app:tint="@color/neon_green"
+        android:visibility="gone"
+        android:contentDescription="Record Voice Log" />
 
 </FrameLayout>

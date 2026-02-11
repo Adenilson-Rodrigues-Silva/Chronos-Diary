@@ -1,4 +1,4 @@
-package com.example.chronosdiary // <--- ESSA LINHA É A MAIS IMPORTANTE
+package com.example.chronosdiary.ui.activities // <--- ESSA LINHA É A MAIS IMPORTANTE
 
 import android.content.Intent
 import android.os.Bundle
@@ -8,7 +8,6 @@ import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import com.example.chronosdiary.MainActivity
 import com.example.chronosdiary.R
 
 class SplashActivity : AppCompatActivity() {

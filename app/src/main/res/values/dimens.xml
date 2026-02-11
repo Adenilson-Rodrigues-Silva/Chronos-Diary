@@ -1,0 +1,7 @@
+<resources>
+    <dimen name="fab_margin">32dp</dimen>
+    <dimen name="text_margin">16dp</dimen>
+    <dimen name="cyber_button_height">56dp</dimen>
+    <dimen name="neon_stroke">2dp</dimen>
+    <dimen name="mic_button_size">80dp</dimen>
+</resources>

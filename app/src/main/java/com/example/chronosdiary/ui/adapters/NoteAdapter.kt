@@ -1,10 +1,12 @@
-package com.example.chronosdiary
+package com.example.chronosdiary.ui.adapters
 
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.example.chronosdiary.data.model.Note
+import com.example.chronosdiary.R
 
 class NoteAdapter(private val notes: List<Note>) : RecyclerView.Adapter<NoteAdapter.NoteViewHolder>() {
 

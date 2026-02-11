@@ -1,4 +1,4 @@
-package com.example.chronosdiary
+package com.example.chronosdiary.ui.activities
 
 import android.os.Bundle
 import android.view.View
@@ -11,6 +11,9 @@ import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.chronosdiary.data.model.Note
+import com.example.chronosdiary.ui.adapters.NoteAdapter
+import com.example.chronosdiary.R
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import java.util.concurrent.Executor
 

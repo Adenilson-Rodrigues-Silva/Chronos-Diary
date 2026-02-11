@@ -1,3 +1,13 @@
 <resources>
     <string name="app_name">Chronos Diary</string>
+
+    <string name="splash_subtitle">SYSTEM_INITIALIZING...</string>
+    <string name="btn_start">START_YOUR_JOURNEY</string>
+    <string name="auth_title">> SYSTEM_LOCKED</string>
+    <string name="auth_subtitle">VERIFY_IDENTITY_SCAN_REQUIRED</string>
+
+    <string name="mic_prompt">SISTEMA CHRONOS: ESCUTANDO...</string>
+    <string name="mic_error_unsupported">Hardware de voz não detectado.</string>
+    <string name="log_recovered">LOGS_RECUPERADOS!</string>
+    <string name="new_entry_hint">Inicie uma nova entrada de log...</string>
 </resources>
