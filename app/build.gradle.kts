@@ -85,6 +85,8 @@ android {
         // Biblioteca para facilitar o uso do Google Cloud Speech
         implementation("com.google.cloud:google-cloud-speech:4.33.0")
 
+        implementation ("com.airbnb.android:lottie:6.1.0")
+
 
     }
 
