@@ -10,16 +10,30 @@ import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
 import androidx.biometric.BiometricPrompt
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.airbnb.lottie.LottieAnimationView
 import com.example.chronosdiary.data.model.Note
 import com.example.chronosdiary.ui.adapters.NoteAdapter
 import com.example.chronosdiary.R
+import com.example.chronosdiary.data.AppDatabase
+import com.example.chronosdiary.data.model.NoteDao
 import com.example.chronosdiary.utils.VoiceHelper
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.util.concurrent.Executor
 
+
+
 class MainActivity : AppCompatActivity() {
+
+
+
+    private lateinit var lottieMic: LottieAnimationView
+
+
 
     private lateinit var executor: Executor
     private lateinit var biometricPrompt: BiometricPrompt
@@ -30,26 +44,76 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var voiceHelper: VoiceHelper
 
+    private lateinit var fabMicPrincipal: FloatingActionButton // Usaremos o FAB que está no seu XML
+    private lateinit var database: AppDatabase
+    private lateinit var noteDao: NoteDao
+    private lateinit var rvNotes: RecyclerView
+    // Mude de: private lateinit var lottieMic: LottieAnimationView
+// Para:
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Pedir permissão de áudio
-        if (ContextCompat.checkSelfPermission(
-                this,
-                android.Manifest.permission.RECORD_AUDIO
-            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(android.Manifest.permission.RECORD_AUDIO),
-                1
-            )
+        checkAudioPermission()
+
+        // AQUI O ERRO MORRE: Vinculamos o ID que existe no activity_main.xml
+        rvNotes = findViewById(R.id.recycler_notes)
+        fabMicPrincipal = findViewById(R.id.fab_mic) // Usando o ID fab_mic do seu XML
+
+        // Inicializar Banco
+        database = AppDatabase.getDatabase(this)
+        noteDao = database.noteDao()
+
+        // Configurar o Adapter
+        noteAdapter = NoteAdapter(listOf())
+        rvNotes.adapter = noteAdapter
+        rvNotes.layoutManager = LinearLayoutManager(this)
+
+        // IMPORTANTE: O clique do botão da tela principal abre o seu Google Cloud BottomSheet
+        fabMicPrincipal.setOnClickListener {
+            showVoiceSheet()
         }
 
-        // 1. Checar biometria
+        // Biometria
         if (checkDeviceCanAuthenticate()) {
             setupBiometric()
+        } else {
+            showChronosLogs()
+        }
+
+        // Configuração do Clique do Microfone (Ajustado para o seu BottomSheet)
+      //  lottieMic.setOnClickListener {
+        //    showVoiceSheet()
+       // }
+    }
+
+    private fun showChronosLogs() {
+        runOnUiThread {
+            rvNotes.visibility = View.VISIBLE
+            // Se você mudou o nome da variável para fabMicPrincipal:
+            fabMicPrincipal.visibility = View.VISIBLE
+            refreshNotes()
+        }
+    }
+
+    // Criar essa função separada facilita sua vida
+    private fun refreshNotes() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val notasSalvas = noteDao.getAllNotes()
+            runOnUiThread {
+                noteAdapter.updateNotes(notasSalvas)
+                // Se a lista estiver vazia agora, ela continuará vazia até você carregar
+            }
+        }
+    }
+
+    // Função auxiliar para deixar o onCreate mais limpo
+    private fun checkAudioPermission() {
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO)
+            != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.RECORD_AUDIO), 1)
         }
     }
 
@@ -94,41 +158,28 @@ class MainActivity : AppCompatActivity() {
         biometricPrompt.authenticate(promptInfo)
     }
 
-    private fun showChronosLogs() {
-        val recyclerView = findViewById<RecyclerView>(R.id.recycler_notes)
-        val fab = findViewById<FloatingActionButton>(R.id.fab_add_note)
 
-        if (notesList.isEmpty()) {
-            notesList.add(Note(1, "10 FEV 2026", "Sistema Chronos Inicializado."))
+    private fun addNewLog(textoFinal: String) {
+        // 1. Criamos a data formatada para o diário
+        val sdf = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
+        val dataFormatada = sdf.format(java.util.Date())
+
+        // 2. Criamos o objeto Note (usando o seu modelo Note.kt)
+        val novaNota = Note(date = dataFormatada, content = textoFinal)
+
+        // 3. Salvamos no banco em uma Coroutine (para não travar a tela)
+        lifecycleScope.launch(Dispatchers.IO) {
+            noteDao.insert(novaNota) // Salva no banco!
+
+            // 4. Após salvar, atualizamos a lista na tela
+            val listaAtualizada = noteDao.getAllNotes()
+
+            runOnUiThread {
+                noteAdapter.updateNotes(listaAtualizada)
+                // Opcional: faz a lista rolar para o topo para ver a nota nova
+                rvNotes.scrollToPosition(0)
+            }
         }
-
-        noteAdapter = NoteAdapter(notesList)
-        recyclerView.layoutManager = LinearLayoutManager(this)
-        recyclerView.adapter = noteAdapter
-
-        recyclerView.visibility = View.VISIBLE
-        fab.visibility = View.VISIBLE
-
-        fab.setOnClickListener {
-            showVoiceSheet()
-        }
-    }
-
-    private fun addNewLog(text: String) {
-
-        val sdf =
-            java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.forLanguageTag("pt-BR"))
-
-        val currentDate = sdf.format(java.util.Date()).uppercase()
-
-        val newNote = Note(notesList.size + 1, currentDate, text)
-        notesList.add(0, newNote)
-        // ... resto do código
-
-
-        notesList.add(0, newNote)
-        noteAdapter.notifyItemInserted(0)
-        findViewById<RecyclerView>(R.id.recycler_notes).scrollToPosition(0)
     }
 
     private fun showVoiceSheet() {
@@ -136,23 +187,18 @@ class MainActivity : AppCompatActivity() {
         val view = layoutInflater.inflate(R.layout.layout_voice_capture, null)
         dialog.setContentView(view)
 
-        //val partialTv = view.findViewById<android.widget.TextView>(R.id.partial_text_view)
-        //val statusTv = view.findViewById<android.widget.TextView>(R.id.status_text)
-        val lottieVisualizer =
-            view.findViewById<com.airbnb.lottie.LottieAnimationView>(R.id.lottie_visualizer)
-        val lottieMic = view.findViewById<com.airbnb.lottie.LottieAnimationView>(R.id.lottieMic)
+        val lottieVisualizer = view.findViewById<LottieAnimationView>(R.id.lottie_visualizer)
+        // Buscamos o mic da VIEW do BottomSheet
+        val lottieMicCloud = view.findViewById<LottieAnimationView>(R.id.lottieMic)
 
         voiceHelper = VoiceHelper(
             this,
             onResult = { textoFinal ->
                 runOnUiThread {
                     if (textoFinal.isNotEmpty()) {
-                       // partialTv.visibility = View.VISIBLE
-                        //partialTv.text = textoFinal
                         addNewLog(textoFinal)
                     }
                     lottieVisualizer.cancelAnimation()
-                    // Pequeno delay para a pessoa ver a animação de "save" antes de fechar
                     view.postDelayed({ dialog.dismiss() }, 1000)
                 }
             },
@@ -160,43 +206,35 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread {
                     when (status) {
                         "LISTENING" -> {
-                          //  statusTv.text = "> SYSTEM_ACTIVE: LISTENING..."
-                           // statusTv.setTextColor(ContextCompat.getColor(this, R.color.neon_green))
-
                             lottieVisualizer.visibility = View.VISIBLE
 
+                            // AQUI: Devolvendo a escala que você gostava
                             lottieVisualizer.scaleX = 0.5f
                             lottieVisualizer.scaleY = 0.8f
-
-
-
                             lottieVisualizer.playAnimation()
 
-                            lottieMic.setAnimation(R.raw.mic_verde_test_2)
-                            lottieMic.playAnimation()
+                            // AQUI: Usamos lottieMicCloud
+                            lottieMicCloud.setAnimation(R.raw.mic_verde_test_2)
+                            lottieMicCloud.playAnimation()
                         }
 
                         "PROCESSING" -> {
-                          //  statusTv.text = "> PROCESSING AUDIO..."
-                           // statusTv.setTextColor(android.graphics.Color.CYAN)
-
                             lottieVisualizer.cancelAnimation()
                             lottieVisualizer.visibility = View.GONE
 
-                            // AQUI: Troca para a animação de SALVAR/NOTAS
-                            lottieMic.setAnimation(R.raw.save_note)
-                            lottieMic.playAnimation()
-                            lottieMic.loop(false) // Geralmente save_note roda só uma vez
+                            // AQUI: Usamos lottieMicCloud
+                            lottieMicCloud.setAnimation(R.raw.save_note)
+                            lottieMicCloud.playAnimation()
+                            lottieMicCloud.repeatCount = 0 // ou loop(false)
                         }
-                        // ... DONE e ERROR permanecem iguais
                     }
                 }
             }
         )
 
-        lottieMic.setOnClickListener {
+        // AQUI: O clique deve ser na lottieMicCloud
+        lottieMicCloud.setOnClickListener {
             if (::voiceHelper.isInitialized) {
-                // No clique, apenas paramos. O "onStatusChange" cuidará da troca visual
                 voiceHelper.stopAndSend()
             }
         }
@@ -214,18 +252,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun startPulseAnimation(view: View, scale: Float) {
-        val scaleX = android.animation.ObjectAnimator.ofFloat(view, "scaleX", 1f, scale, 1f)
-        val scaleY = android.animation.ObjectAnimator.ofFloat(view, "scaleY", 1f, scale, 1f)
 
-        scaleX.repeatCount = android.animation.ValueAnimator.INFINITE
-        scaleY.repeatCount = android.animation.ValueAnimator.INFINITE
-
-        android.animation.AnimatorSet().apply {
-            playTogether(scaleX, scaleY)
-            duration = 1000
-            start()
-        }
-    }
 
 }

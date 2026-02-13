@@ -44,7 +44,10 @@
         android:text="Iniciando sequência de log..."
         android:textColor="#A0A0A0"
         android:textSize="14sp"
-        android:fontFamily="monospace" />
+        android:fontFamily="monospace"
+        android:maxLines="3"
+        android:ellipsize="end"
+        android:lineSpacingExtra="4dp"/>
 
 </RelativeLayout>
 </androidx.cardview.widget.CardView>

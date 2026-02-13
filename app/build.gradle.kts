@@ -12,6 +12,9 @@ if (localPropertiesFile.exists()) {
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+
+    // ADICIONE ESTA LINHA ABAIXO:
+    kotlin("kapt")
 }
 
 android {
@@ -87,7 +90,19 @@ android {
 
         implementation ("com.airbnb.android:lottie:6.1.0")
 
+        // Dependências do Room
+        val roomVersion = "2.6.1"
+        implementation("androidx.room:room-runtime:$roomVersion")
+        implementation("androidx.room:room-ktx:$roomVersion")
+        kapt("androidx.room:room-compiler:$roomVersion")
+
 
     }
 
+}
+dependencies {
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material)
+    implementation(libs.androidx.activity)
+    implementation(libs.androidx.constraintlayout)
 }

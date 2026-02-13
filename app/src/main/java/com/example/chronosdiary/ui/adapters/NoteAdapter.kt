@@ -8,11 +8,18 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.chronosdiary.data.model.Note
 import com.example.chronosdiary.R
 
-class NoteAdapter(private val notes: List<Note>) : RecyclerView.Adapter<NoteAdapter.NoteViewHolder>() {
+// Mudamos para 'var' e 'MutableList' para podermos alterar a lista depois
+class NoteAdapter(private var notes: List<Note>) : RecyclerView.Adapter<NoteAdapter.NoteViewHolder>() {
 
     class NoteViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val dateText: TextView = view.findViewById(R.id.text_note_date)
         val previewText: TextView = view.findViewById(R.id.text_note_preview)
+    }
+
+    // --- ESTA É A FUNÇÃO QUE ESTAVA FALTANDO ---
+    fun updateNotes(newNotes: List<Note>) {
+        this.notes = newNotes
+        notifyDataSetChanged() // Isso força a lista na tela a se atualizar
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): NoteViewHolder {
