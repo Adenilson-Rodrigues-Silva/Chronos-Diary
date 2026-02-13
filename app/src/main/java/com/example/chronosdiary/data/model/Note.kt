@@ -7,6 +7,6 @@ import androidx.room.PrimaryKey
 data class Note(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    val date: String,    // Mantive o campo date que você já tinha
-    val content: String
+    var date: String,    // Mantive o campo date que você já tinha
+    var content: String
 )

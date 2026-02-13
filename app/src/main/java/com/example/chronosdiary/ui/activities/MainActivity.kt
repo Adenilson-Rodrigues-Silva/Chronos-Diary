@@ -23,6 +23,7 @@ import com.example.chronosdiary.utils.VoiceHelper
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.concurrent.Executor
 
 
@@ -249,6 +250,24 @@ class MainActivity : AppCompatActivity() {
         // em segundo plano do VoiceHelper sejam encerradas imediatamente.
         if (::voiceHelper.isInitialized) {
             voiceHelper.destroy()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Toda vez que você voltar para esta tela, ela busca os dados novos
+        updateFeed()
+    }
+
+    private fun updateFeed() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val db = AppDatabase.getDatabase(this@MainActivity)
+            val updatedNotes = db.noteDao().getAllNotes()
+
+            withContext(Dispatchers.Main) {
+                // Aqui passamos a lista nova para o seu Adapter
+                noteAdapter.updateNotes(updatedNotes)
+            }
         }
     }
 

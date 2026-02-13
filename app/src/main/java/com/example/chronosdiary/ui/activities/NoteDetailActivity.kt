@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -38,15 +39,38 @@ class NoteDetailActivity : AppCompatActivity() {
 
         // 3. Pegar o ID enviado pelo Adapter e carregar a nota
         // Tente pegar como Int se o Long retornar -1
-        var noteId = intent.getLongExtra("NOTE_ID", -1)
-
+        // No onCreate da NoteDetailActivity
+        val intentId = intent.getLongExtra("NOTE_ID", -1L)
+// Se o Long falhar, tentamos buscar como Int (caso o Room esteja usando Int)
+        val noteId = if (intentId == -1L) intent.getIntExtra("NOTE_ID", -1).toLong() else intentId
 
         if (noteId != -1L) {
-            // ESTA LINHA ABAIXO É A QUE ESTAVA FALTANDO CHAMAR:
-            loadNoteData(noteId)
+            loadNoteData(noteId) // Agora garantimos que a função é chamada!
         } else {
-            // Log para você saber se o ID falhou ao chegar
-            println("CHRONOS_LOG: Erro ao receber o ID da nota")
+            //Toast.makeText(this, "Erro: Nota não encontrada", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this@NoteDetailActivity, "Cronologia atualizada!", Toast.LENGTH_SHORT).show()
+        }
+
+        // Dentro do onCreate, após inicializar os componentes
+        val btnSave = findViewById<ImageButton>(R.id.fab_save_changes) // Use o ID correto do seu XML
+
+        btnSave.setOnClickListener {
+            val novoTexto = etContent.text.toString()
+
+            lifecycleScope.launch(Dispatchers.IO) {
+                val db = AppDatabase.getDatabase(this@NoteDetailActivity)
+                val noteAtual = db.noteDao().getNoteById(noteId)
+
+                noteAtual?.let {
+                    it.content = novoTexto
+                    db.noteDao().update(it)
+
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@NoteDetailActivity, "Cronologia atualizada!", Toast.LENGTH_SHORT).show()
+                        finish() // Volta para o feed
+                    }
+                }
+            }
         }
     }
 

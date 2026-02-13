@@ -3,9 +3,13 @@ package com.example.chronosdiary.data.model // Verifique se o package está igua
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 
 @Dao
 interface NoteDao {
+
+    @Update
+    suspend fun update(note: Note)
 
     // Salva uma nova nota no banco
     @Insert
