@@ -6,55 +6,36 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:background="@color/chronos_dark_gray"
-    android:padding="24dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="20dp"
     android:gravity="center_horizontal">
 
     <View
         android:layout_width="40dp"
         android:layout_height="3dp"
         android:background="@color/neon_green"
-        android:layout_marginBottom="24dp"/>
-
-    <TextView
-        android:id="@+id/status_text"
-        style="@style/TextStyle.Chronos.SystemLabel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="> INITIALIZING_RECOGNITION..."
-        android:textColor="@color/neon_green"
-        android:layout_marginBottom="16dp"/>
+        android:layout_marginBottom="10dp"/>
 
     <com.airbnb.lottie.LottieAnimationView
         android:id="@+id/lottie_visualizer"
         android:layout_width="match_parent"
-        android:layout_height="120dp"
-        android:layout_gravity="center_horizontal"
-        app:lottie_rawRes="@raw/wave_hacker"
+        android:layout_height="70dp"
+        android:layout_marginBottom="-25dp"
+        app:lottie_rawRes="@raw/wave_test_3"
         app:lottie_autoPlay="false"
         app:lottie_loop="true"
-        android:scaleType="centerCrop"
+        android:scaleType="centerInside"
+        android:background="@android:color/transparent"
+        app:lottie_renderMode="software"
         android:visibility="gone" />
 
-    <TextView
-        android:id="@+id/partial_text_view"
-        style="@style/TextStyle.Chronos.LogContent"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:minHeight="40dp"
-        android:gravity="center"
-        android:text="..."
-        android:textColor="@color/white"
-        android:layout_marginBottom="24dp"/>
-
-    <ImageButton
-        android:id="@+id/btn_finish_voice"
-        android:layout_width="72dp"
-        android:layout_height="72dp"
-        android:src="@drawable/ic_mic"
-        android:background="@drawable/bg_mic_neon"
-        android:scaleType="centerInside"
-        android:elevation="4dp"
-        android:contentDescription="Ação de Voz"
-        android:layout_marginBottom="10dp"/>
+    <com.airbnb.lottie.LottieAnimationView
+        android:id="@+id/lottieMic"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        app:lottie_rawRes="@raw/mic_verde_test_2"
+        app:lottie_autoPlay="false"
+        app:lottie_loop="true"
+        android:background="@android:color/transparent" />
 
 </LinearLayout>

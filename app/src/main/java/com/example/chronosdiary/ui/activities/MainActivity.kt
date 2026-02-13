@@ -116,8 +116,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun addNewLog(text: String) {
 
+        val sdf =
+            java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.forLanguageTag("pt-BR"))
 
-        val sdf = java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale("pt", "BR"))
         val currentDate = sdf.format(java.util.Date()).uppercase()
 
         val newNote = Note(notesList.size + 1, currentDate, text)
@@ -132,104 +133,78 @@ class MainActivity : AppCompatActivity() {
 
     private fun showVoiceSheet() {
         val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(this)
-
-        // 1. Inflar a view primeiro (A ordem aqui é vital!)
         val view = layoutInflater.inflate(R.layout.layout_voice_capture, null)
         dialog.setContentView(view)
 
-        // 2. Referenciar os componentes APÓS inflar a view
-        val partialTv = view.findViewById<android.widget.TextView>(R.id.partial_text_view)
-        val statusTv = view.findViewById<android.widget.TextView>(R.id.status_text)
-        val btnCheck = view.findViewById<android.widget.ImageButton>(R.id.btn_finish_voice)
-        val lottieVisualizer = view.findViewById<com.airbnb.lottie.LottieAnimationView>(R.id.lottie_visualizer)
+        //val partialTv = view.findViewById<android.widget.TextView>(R.id.partial_text_view)
+        //val statusTv = view.findViewById<android.widget.TextView>(R.id.status_text)
+        val lottieVisualizer =
+            view.findViewById<com.airbnb.lottie.LottieAnimationView>(R.id.lottie_visualizer)
+        val lottieMic = view.findViewById<com.airbnb.lottie.LottieAnimationView>(R.id.lottieMic)
 
-        // 3. Configurar o VoiceHelper
         voiceHelper = VoiceHelper(
             this,
             onResult = { textoFinal ->
                 runOnUiThread {
                     if (textoFinal.isNotEmpty()) {
-                        partialTv.text = textoFinal
+                       // partialTv.visibility = View.VISIBLE
+                        //partialTv.text = textoFinal
                         addNewLog(textoFinal)
-                    } else {
-                        Toast.makeText(this, "Nenhum áudio reconhecido", Toast.LENGTH_SHORT).show()
                     }
-
-                    // Limpeza visual ao fechar
                     lottieVisualizer.cancelAnimation()
-                    dialog.dismiss()
+                    // Pequeno delay para a pessoa ver a animação de "save" antes de fechar
+                    view.postDelayed({ dialog.dismiss() }, 1000)
                 }
             },
             onStatusChange = { status ->
                 runOnUiThread {
                     when (status) {
                         "LISTENING" -> {
-                            runOnUiThread {
-                                lottieVisualizer.visibility = View.VISIBLE
-                                lottieVisualizer.scaleX = 1.5f // Aumenta a largura em 50% além do padrão
-                                lottieVisualizer.scaleY = 1.5f // Aumenta um pouco a altura para dar impacto
-                                lottieVisualizer.playAnimation()
+                          //  statusTv.text = "> SYSTEM_ACTIVE: LISTENING..."
+                           // statusTv.setTextColor(ContextCompat.getColor(this, R.color.neon_green))
 
-                                statusTv.text = "> SYSTEM_ACTIVE: LISTENING..."
-                                statusTv.setTextColor(ContextCompat.getColor(this, R.color.neon_green))
+                            lottieVisualizer.visibility = View.VISIBLE
 
-                                // Inicia as ondas sonoras
-                                lottieVisualizer.visibility = View.VISIBLE
-                                lottieVisualizer.playAnimation()
+                            lottieVisualizer.scaleX = 0.5f
+                            lottieVisualizer.scaleY = 0.8f
 
-                                // Configura o botão
-                                btnCheck.setImageResource(R.drawable.ic_mic)
-                                startPulseAnimation(btnCheck, 1.3f)
-                            }
+
+
+                            lottieVisualizer.playAnimation()
+
+                            lottieMic.setAnimation(R.raw.mic_verde_test_2)
+                            lottieMic.playAnimation()
                         }
 
                         "PROCESSING" -> {
-                            runOnUiThread {
-                                statusTv.text = "> PROCESSING AUDIO..."
-                                statusTv.setTextColor(android.graphics.Color.CYAN)
+                          //  statusTv.text = "> PROCESSING AUDIO..."
+                           // statusTv.setTextColor(android.graphics.Color.CYAN)
 
-                                // Esconde as ondas para dar espaço ao processamento
-                                lottieVisualizer.cancelAnimation()
-                                lottieVisualizer.visibility = View.GONE
-
-                                // Troca o ícone para EDIT (Caneta)
-                                btnCheck.clearAnimation()
-                                btnCheck.setImageResource(R.drawable.ic_edit)
-                            }
-                        }
-
-                        "DONE" -> {
-                            statusTv.text = "> COMPLETE"
-                            statusTv.setTextColor(android.graphics.Color.GREEN)
-                            btnCheck.clearAnimation()
-                        }
-
-                        "ERROR" -> {
-                            statusTv.text = "> SYSTEM_ERROR: CHECK INTERNET"
-                            statusTv.setTextColor(android.graphics.Color.RED)
+                            lottieVisualizer.cancelAnimation()
                             lottieVisualizer.visibility = View.GONE
+
+                            // AQUI: Troca para a animação de SALVAR/NOTAS
+                            lottieMic.setAnimation(R.raw.save_note)
+                            lottieMic.playAnimation()
+                            lottieMic.loop(false) // Geralmente save_note roda só uma vez
                         }
+                        // ... DONE e ERROR permanecem iguais
                     }
                 }
             }
         )
 
-        // 4. Configurar o clique do botão
-        btnCheck.setOnClickListener {
-            // Verifica se a variável foi inicializada para evitar o crash
+        lottieMic.setOnClickListener {
             if (::voiceHelper.isInitialized) {
-                btnCheck.setImageResource(R.drawable.ic_edit)
+                // No clique, apenas paramos. O "onStatusChange" cuidará da troca visual
                 voiceHelper.stopAndSend()
             }
         }
 
         dialog.show()
-
-        // 5. Iniciar o microfone com um pequeno delay para o sistema respirar
-        view.postDelayed({
-            voiceHelper.startListening()
-        }, 300)
+        view.postDelayed({ voiceHelper.startListening() }, 300)
     }
+
     override fun onDestroy() {
         super.onDestroy()
         // Isso garante que, se você fechar o app, o microfone e as tarefas
