@@ -16,7 +16,7 @@
         android:theme="@style/Theme.ChronosDiary"
         tools:targetApi="31">
         <activity
-            android:name=".NoteDetailActivity"
+            android:name=".ui.activities.NoteDetailActivity"
             android:exported="false" />
         <activity
             android:name=".ui.activities.MainActivity"

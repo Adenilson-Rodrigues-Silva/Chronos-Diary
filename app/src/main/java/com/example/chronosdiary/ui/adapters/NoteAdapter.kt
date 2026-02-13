@@ -1,10 +1,12 @@
 package com.example.chronosdiary.ui.adapters
 
+import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.example.chronosdiary.ui.activities.NoteDetailActivity
 import com.example.chronosdiary.data.model.Note
 import com.example.chronosdiary.R
 
@@ -32,6 +34,13 @@ class NoteAdapter(private var notes: List<Note>) : RecyclerView.Adapter<NoteAdap
         val note = notes[position]
         holder.dateText.text = note.date
         holder.previewText.text = note.content
+
+        holder.itemView.setOnClickListener {
+            val intent = Intent(holder.itemView.context, NoteDetailActivity::class.java)
+            // Passamos o ID da nota para a próxima tela saber qual abrir
+            intent.putExtra("NOTE_ID", note.id)
+            holder.itemView.context.startActivity(intent)
+        }
     }
 
     override fun getItemCount() = notes.size
