@@ -105,7 +105,8 @@
                             android:minHeight="300dp"
                             android:textColor="#E0E0E0"
                             android:gravity="top"
-                            android:textSize="18sp" />
+                            android:textSize="18sp"
+                            android:inputType="textMultiLine|textCapSentences|textNoSuggestions"/>
 
                         <View android:layout_width="60dp" android:layout_height="1dp" android:layout_gravity="center" android:layout_marginTop="40dp" android:background="#22FFFFFF" />
                         <TextView
