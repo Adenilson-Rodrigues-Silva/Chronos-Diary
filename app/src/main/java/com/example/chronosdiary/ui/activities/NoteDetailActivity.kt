@@ -138,10 +138,16 @@ class NoteDetailActivity : AppCompatActivity() {
                 popup.menu.getItem(i).icon?.setTint(neonColor)
             }
 
+            ////TUDO DO MENU SUSPENÇÃO É AQUI
             popup.setOnMenuItemClickListener { item ->
                 when (item.itemId) {
                     R.id.action_delete -> {
+                        confirmarExclusao()
                         Toast.makeText(this, "Ação de apagar: Amanhã!", Toast.LENGTH_SHORT).show()
+                        true
+                    }
+                    R.id.action_info -> { // O ID que você colocou no XML do menu
+                        exibirDetalhesDaNota()
                         true
                     }
                     else -> false
@@ -367,5 +373,63 @@ class NoteDetailActivity : AppCompatActivity() {
         }
     }
 
+
+    // Exibe um alerta de confirmação antes de deletar a nota permanentemente
+    private fun confirmarExclusao() {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Apagar Memória?")
+            .setMessage("Esta ação não pode ser desfeita. Deseja excluir permanentemente?")
+            .setPositiveButton("Sim, Apagar") { _, _ ->
+                deletarNotaDoBanco()
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    // Executa a exclusão no banco de dados Room e fecha a tela
+    private fun deletarNotaDoBanco() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val db = AppDatabase.getDatabase(this@NoteDetailActivity)
+            val noteAtual = db.noteDao().getNoteById(noteId)
+            noteAtual?.let {
+                db.noteDao().delete(it) // Certifique-se que seu DAO tem a função delete
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@NoteDetailActivity, "Memória apagada!", Toast.LENGTH_SHORT).show()
+                    finish() // Volta para a tela principal
+                }
+            }
+        }
+    }
+
+    // Calcula e exibe estatísticas da nota atual
+    private fun exibirDetalhesDaNota() {
+        val texto = etContent.text.toString().trim()
+        val caracteres = texto.length
+
+        // 1. Cálculo de Palavras e Tempo de Leitura
+        val palavras = if (texto.isEmpty()) 0 else texto.split("\\s+".toRegex()).size
+        val tempoLeitura = if (palavras > 0) Math.ceil(palavras / 200.0).toInt() else 0
+
+        // 2. Verificar se tem imagens (procura por ImageSpans no texto)
+        val temImagens = etContent.text.getSpans(0, etContent.text.length, android.text.style.ImageSpan::class.java).isNotEmpty()
+        val statusMidia = if (temImagens) "Contém imagens" else "Apenas texto"
+
+        // 3. Montar o Relatório
+        val relatorio = StringBuilder()
+        relatorio.append("🆔 Registro: #$noteId\n")
+        relatorio.append("📅 Data: ${tvDate.text}\n")
+        relatorio.append("📝 Status: $statusMidia\n")
+        relatorio.append("----------------------------\n")
+        relatorio.append("🔢 Caracteres: $caracteres\n")
+        relatorio.append("✍️ Palavras: $palavras\n")
+        relatorio.append("⏱️ Leitura estimada: $tempoLeitura min\n")
+
+        // Criar o alerta visual
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Relatório da Memória")
+            .setMessage(relatorio.toString())
+            .setPositiveButton("Entendido", null)
+            .show()
+    }
 
 }

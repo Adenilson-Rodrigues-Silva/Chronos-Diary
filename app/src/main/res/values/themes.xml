@@ -33,6 +33,11 @@
         <item name="android:textSize">16sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:tint">#00FFCC</item>
+
+    </style>
+
+    <style name="CircleImage">
+        <item name="cornerSize">50%</item>
     </style>
 
 

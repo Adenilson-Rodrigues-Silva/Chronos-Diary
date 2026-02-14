@@ -1,53 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView
+<com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="16dp"
-    android:layout_marginVertical="6dp"
-    android:background="@drawable/cyber_card_border"
-    app:cardCornerRadius="2dp"
-    app:cardElevation="0dp"> <RelativeLayout
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:padding="12dp"
-    android:background="@android:color/transparent">
+    android:layout_marginBottom="16dp"
+    app:cardBackgroundColor="#1A1A1A"
+    app:cardCornerRadius="24dp"
+    app:cardElevation="0dp">
 
-    <View
-        android:id="@+id/view_indicator"
-        android:layout_width="2dp"
-        android:layout_height="40dp"
-        android:background="#00FF00"
-        android:layout_alignParentStart="true"
-        android:layout_centerVertical="true" />
-
-    <TextView
-        android:id="@+id/text_note_date"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_toEndOf="@id/view_indicator"
-        android:layout_marginStart="12dp"
-        android:text="[ TIMESTAMP: 10.02.26 ]"
-        android:textColor="#00FF00"
-        android:textSize="11sp"
-        android:letterSpacing="0.1" />
-
-    <TextView
-        android:id="@+id/text_note_preview"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@id/text_note_date"
-        android:layout_toEndOf="@id/view_indicator"
-        android:layout_marginStart="12dp"
-        android:layout_marginTop="6dp"
-        android:text="Iniciando sequência de log..."
-        android:textColor="#A0A0A0"
-        android:textSize="14sp"
-        android:fontFamily="monospace"
-        android:maxLines="3"
-        android:ellipsize="end"
-        android:lineSpacingExtra="4dp"/>
+        android:orientation="horizontal"
+        android:padding="20dp"
+        android:gravity="center_vertical">
 
-</RelativeLayout>
-</androidx.cardview.widget.CardView>
+        <TextView
+            android:id="@+id/text_emoji"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:background="#10FFFFFF"
+            android:gravity="center"
+            android:text="😊"
+            android:textSize="24sp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/text_note_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="14 de Fev"
+                android:textColor="#50FFFFFF"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/text_note_preview"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Hoje o dia foi incrível..."
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end" />
+        </LinearLayout>
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@android:drawable/ic_media_play"
+            android:rotation="90"
+            app:tint="#30FFFFFF" />
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

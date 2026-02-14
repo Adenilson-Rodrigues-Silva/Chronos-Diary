@@ -1,6 +1,7 @@
 package com.example.chronosdiary.data.model // Verifique se o package está igual ao seu Note.kt
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
@@ -25,6 +26,9 @@ interface NoteDao {
     // Se quiser deletar tudo depois, já deixamos o comando pronto
     @Query("DELETE FROM notes_table")
     suspend fun deleteAll()
+
+    @Delete
+    suspend fun delete(note: Note)
 
 
 }
