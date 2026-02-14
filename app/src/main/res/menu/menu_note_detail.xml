@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_share"
+        android:title="Compartilhar Memória" />
+    <item
+        android:id="@+id/action_delete"
+        android:title="Apagar para sempre" />
+    <item
+        android:id="@+id/action_font"
+        android:title="Mudar fonte"
+        />
+</menu>
