@@ -1,13 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android">
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
     <item
         android:id="@+id/action_share"
-        android:title="Compartilhar Memória" />
-    <item
-        android:id="@+id/action_delete"
-        android:title="Apagar para sempre" />
+        android:icon="@drawable/ic_share"
+        android:title="Compartilhar Memória"
+        app:showAsAction="never"
+        android:iconTint="#00FFCC"/>
+
     <item
         android:id="@+id/action_font"
-        android:title="Mudar fonte"
-        />
+        android:icon="@drawable/ic_text_format"
+        android:title="Estilo da Fonte"
+        app:showAsAction="never"
+        android:iconTint="#00FFCC"/>
+
+    <item
+        android:id="@+id/action_info"
+        android:icon="@drawable/ic_info"
+        android:title="Detalhes da Memória"
+        app:showAsAction="never"
+        android:iconTint="#00FFCC"/>
+
+    <item
+        android:id="@+id/action_delete"
+        android:icon="@drawable/ic_delete"
+        android:title="Apagar para Sempre"
+        app:showAsAction="never"
+        android:iconTint="#00FFCC"/>
+
+    <item
+        android:id="@+id/action_lock_note"
+        android:icon="@drawable/action_lock_note"
+        android:title="Trancar Memórias"
+        app:showAsAction="never"
+        android:iconTint="#00FFCC"/>
+
+    <item
+        android:id="@+id/action_time_capsule"
+        android:icon="@drawable/action_time_capsule"
+        android:title="Cápsula do Tempo"
+        app:showAsAction="never"
+        android:iconTint="#00FFCC"/>
+
 </menu>

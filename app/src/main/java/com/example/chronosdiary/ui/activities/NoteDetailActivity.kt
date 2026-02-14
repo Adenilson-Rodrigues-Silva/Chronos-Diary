@@ -1,5 +1,6 @@
 package com.example.chronosdiary.ui.activities
 
+import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
@@ -33,13 +34,21 @@ import kotlinx.coroutines.withContext
 
 class NoteDetailActivity : AppCompatActivity() {
 
-    // 1. PROPRIEDADES DA CLASSE (Apenas declarações)
+    // 1. PROPRIEDADES E SELEÇÃO DE MÍDIA
+    // 1. Onde você pede a "chave permanente" para o Android
     private val pickMedia = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
-            Log.d("CHRONOS", "Imagem selecionada: $uri")
-            inserirImagemNoTexto(uri)
-        } else {
-            Log.d("CHRONOS", "Nenhuma imagem selecionada")
+            try {
+                // Pede permissão permanente para ler este arquivo específico
+                val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                contentResolver.takePersistableUriPermission(uri, takeFlags)
+
+                // Agora sim, insere no texto
+                inserirImagemNoTexto(uri)
+            } catch (e: Exception) {
+                Log.e("CHRONOS", "Erro ao persistir permissão: ${e.message}")
+                inserirImagemNoTexto(uri) // Tenta inserir mesmo se falhar a persistência
+            }
         }
     }
 
@@ -56,45 +65,45 @@ class NoteDetailActivity : AppCompatActivity() {
     private var isUnderlineActive = false
     private var isFormattingProgrammatically = false
 
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_note_detail)
 
-        // 2. INICIALIZAÇÃO DOS COMPONENTES (Apenas após o setContentView)
+        inicializarComponentes()
+        carregarDadosDaNota()
+        configurarBotoesPrincipais()
+        configurarMenuDeOpcoes()
+        configurarFerramentasDeTexto()
+        configurarCliquesDosEmojis()
+    }
+
+    private fun inicializarComponentes() {
         etContent = findViewById(R.id.et_detail_content)
         btnBack = findViewById(R.id.btn_back)
         tvDate = findViewById(R.id.tv_detail_date)
         imgSelectedMood = findViewById(R.id.img_selected_mood)
         barFormatting = findViewById(R.id.bar_formatting)
         barMoodSelection = findViewById(R.id.bar_mood_selection)
+    }
 
-        // Botões da Barra Inferior
-        val btnToggleFormat = findViewById<ImageButton>(R.id.btn_toggle_format)
-        val btnToggleMood = findViewById<ImageButton>(R.id.btn_toggle_mood)
-        val btnSave = findViewById<ImageButton>(R.id.fab_save_changes)
-        val btnMarker = findViewById<ImageButton>(R.id.btn_text_color)
-        val btnAddImage = findViewById<ImageButton>(R.id.btn_add_image)
-        val btnMic = findViewById<ImageButton>(R.id.btn_detail_mic)
-
-        // Botões de Formatação (Menu Flutuante)
-        val btnBold = findViewById<ImageButton>(R.id.format_bold)
-        val btnItalic = findViewById<ImageButton>(R.id.format_italic)
-        val btnUnderline = findViewById<ImageButton>(R.id.format_underline)
-
-        // Botão de Opções (Topo)
-        val btnMenu = findViewById<ImageButton>(R.id.btn_more_options)
-
-        // 3. CARREGAR DADOS DA NOTA
+    private fun carregarDadosDaNota() {
         val intentId = intent.getLongExtra("NOTE_ID", -1L)
         noteId = if (intentId == -1L) intent.getIntExtra("NOTE_ID", -1).toLong() else intentId
-
         if (noteId != -1L) {
             loadNoteData(noteId)
         }
+    }
 
-        // 4. CONFIGURAÇÃO DE CLIQUES (LISTENERS)
+    private fun configurarBotoesPrincipais() {
+        val btnToggleFormat = findViewById<ImageButton>(R.id.btn_toggle_format)
+        val btnToggleMood = findViewById<ImageButton>(R.id.btn_toggle_mood)
+        val btnSave = findViewById<ImageButton>(R.id.fab_save_changes)
+        val btnAddImage = findViewById<ImageButton>(R.id.btn_add_image)
 
         btnBack.setOnClickListener { finish() }
+        btnSave.setOnClickListener { salvarNota() }
 
         btnToggleFormat.setOnClickListener {
             barFormatting.visibility = if (barFormatting.visibility == View.GONE) View.VISIBLE else View.GONE
@@ -106,22 +115,33 @@ class NoteDetailActivity : AppCompatActivity() {
             barFormatting.visibility = View.GONE
         }
 
-        btnSave.setOnClickListener { salvarNota() }
-
-        // Abrir Galeria
         btnAddImage.setOnClickListener {
-            Toast.makeText(this, "Acessando Galeria...", Toast.LENGTH_SHORT).show()
             pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
         }
+    }
 
-        // Menu de Opções (Três Pontinhos)
+    private fun configurarMenuDeOpcoes() {
+        val btnMenu = findViewById<ImageButton>(R.id.btn_more_options)
+        val neonColor = Color.parseColor("#00FFCC")
+
         btnMenu.setOnClickListener { view ->
             val popup = PopupMenu(this, view)
             popup.menuInflater.inflate(R.menu.menu_note_detail, popup.menu)
+
+            try {
+                val method = popup.menu.javaClass.getDeclaredMethod("setOptionalIconsVisible", Boolean::class.javaPrimitiveType)
+                method.isAccessible = true
+                method.invoke(popup.menu, true)
+            } catch (e: Exception) {}
+
+            for (i in 0 until popup.menu.size()) {
+                popup.menu.getItem(i).icon?.setTint(neonColor)
+            }
+
             popup.setOnMenuItemClickListener { item ->
                 when (item.itemId) {
                     R.id.action_delete -> {
-                        Toast.makeText(this, "Deletar em breve...", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, "Ação de apagar: Amanhã!", Toast.LENGTH_SHORT).show()
                         true
                     }
                     else -> false
@@ -129,10 +149,15 @@ class NoteDetailActivity : AppCompatActivity() {
             }
             popup.show()
         }
+    }
 
-        configurarCliquesDosEmojis()
+    private fun configurarFerramentasDeTexto() {
+        val btnBold = findViewById<ImageButton>(R.id.format_bold)
+        val btnItalic = findViewById<ImageButton>(R.id.format_italic)
+        val btnUnderline = findViewById<ImageButton>(R.id.format_underline)
+        val btnMarker = findViewById<ImageButton>(R.id.btn_text_color)
 
-        // 5. LÓGICA DE FORMATAÇÃO (BOLD, ITALIC, UNDERLINE, MARKER)
+        // LÓGICA DO NEGRITO
         btnBold.setOnClickListener {
             val start = etContent.selectionStart
             val end = etContent.selectionEnd
@@ -149,10 +174,10 @@ class NoteDetailActivity : AppCompatActivity() {
                 if (!removido) spannable.setSpan(StyleSpan(Typeface.BOLD), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             } else {
                 isBoldActive = !isBoldActive
-                Toast.makeText(this, "Negrito ${if (isBoldActive) "ON" else "OFF"}", Toast.LENGTH_SHORT).show()
             }
         }
 
+        // LÓGICA DO ITÁLICO
         btnItalic.setOnClickListener {
             val start = etContent.selectionStart
             val end = etContent.selectionEnd
@@ -169,10 +194,10 @@ class NoteDetailActivity : AppCompatActivity() {
                 if (!temItalico) spannable.setSpan(StyleSpan(Typeface.ITALIC), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             } else {
                 isItalicActive = !isItalicActive
-                Toast.makeText(this, "Itálico ${if (isItalicActive) "ON" else "OFF"}", Toast.LENGTH_SHORT).show()
             }
         }
 
+        // LÓGICA DO SUBLINHADO
         btnUnderline.setOnClickListener {
             val start = etContent.selectionStart
             val end = etContent.selectionEnd
@@ -186,10 +211,10 @@ class NoteDetailActivity : AppCompatActivity() {
                 }
             } else {
                 isUnderlineActive = !isUnderlineActive
-                Toast.makeText(this, "Sublinhado ${if (isUnderlineActive) "ON" else "OFF"}", Toast.LENGTH_SHORT).show()
             }
         }
 
+        // LÓGICA DO MARCADOR NEON
         btnMarker.setOnClickListener {
             val start = etContent.selectionStart
             val end = etContent.selectionEnd
@@ -201,16 +226,8 @@ class NoteDetailActivity : AppCompatActivity() {
                 var removido = false
                 if (existingSpans.isNotEmpty()) {
                     for (span in existingSpans) {
-                        val s = editable.getSpanStart(span)
-                        val e = editable.getSpanEnd(span)
-                        if (finalStart >= s && finalEnd <= e) {
-                            editable.removeSpan(span)
-                            removido = true
-                        } else {
-                            finalStart = minOf(finalStart, s)
-                            finalEnd = maxOf(finalEnd, e)
-                            editable.removeSpan(span)
-                        }
+                        editable.removeSpan(span)
+                        removido = true
                     }
                 }
                 if (!removido) {
@@ -220,7 +237,7 @@ class NoteDetailActivity : AppCompatActivity() {
             }
         }
 
-        // 6. TEXTWATCHER PARA DIGITAÇÃO EM TEMPO REAL
+        // MONITOR DE DIGITAÇÃO (TEXTWATCHER)
         etContent.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -239,34 +256,34 @@ class NoteDetailActivity : AppCompatActivity() {
         })
     }
 
-    // --- FUNÇÕES AUXILIARES ---
+    // --- MANTIVE AS DEMAIS FUNÇÕES QUE VOCÊ JÁ TINHA ---
 
+
+    //// Processa a imagem escolhida da galeria e a insere como um ImageSpan dentro do corpo do texto
     private fun inserirImagemNoTexto(uri: Uri) {
         try {
-            val drawable = contentResolver.openInputStream(uri)?.use { inputStream ->
-                Drawable.createFromStream(inputStream, uri.toString())
-            }
+            // 1. Criar o HTML manual com a URI da imagem
+            val imageTag = "<img src=\"$uri\">"
+            val selectionStart = etContent.selectionStart
 
-            drawable?.let {
-                val width = 400
-                val aspectRatio = it.intrinsicHeight.toFloat() / it.intrinsicWidth.toFloat()
-                val height = (width * aspectRatio).toInt()
-                it.setBounds(0, 0, width, height)
+            // 2. Inserir a tag no texto e re-processar o HTML para exibir a imagem na hora
+            etContent.text.insert(selectionStart, Html.fromHtml(imageTag, Html.FROM_HTML_MODE_LEGACY, { source ->
+                val d = Drawable.createFromStream(contentResolver.openInputStream(uri), source)
+                d?.let {
+                    val width = 400
+                    val aspectRatio = it.intrinsicHeight.toFloat() / it.intrinsicWidth.toFloat()
+                    it.setBounds(0, 0, width, (width * aspectRatio).toInt())
+                }
+                d
+            }, null))
 
-                val spannable = etContent.text
-                val selectionStart = etContent.selectionStart
-
-                val imageSpan = ImageSpan(it, ImageSpan.ALIGN_BASELINE)
-                spannable.insert(selectionStart, "\n \n")
-                spannable.setSpan(imageSpan, selectionStart + 1, selectionStart + 2, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                etContent.setSelection(selectionStart + 3)
-            }
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(this, "Erro ao carregar imagem", Toast.LENGTH_SHORT).show()
         }
     }
 
+
+    // Gerencia a seleção de humor: troca o ícone principal e a cor neon de acordo com o emoji clicado
     private fun configurarCliquesDosEmojis() {
         val moods = mapOf(
             R.id.select_mood_very_sad to Pair(R.drawable.ic_mod_very_sad, "#FF4444"),
@@ -286,30 +303,54 @@ class NoteDetailActivity : AppCompatActivity() {
         }
     }
 
+
+    // Busca a nota no banco de dados local (Room) usando Coroutines e preenche o editor com o conteúdo salvo
     private fun loadNoteData(id: Long) {
         lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.getDatabase(this@NoteDetailActivity)
             val note = db.noteDao().getNoteById(id)
             withContext(Dispatchers.Main) {
                 note?.let {
-                    val textoHtml = Html.fromHtml(it.content, Html.FROM_HTML_MODE_LEGACY)
-                    val spannable = android.text.SpannableStringBuilder(textoHtml)
+                    tvDate.text = it.date
 
+                    val imageGetter = Html.ImageGetter { source ->
+                        try {
+                            val imageUri = Uri.parse(source)
+                            val inputStream = contentResolver.openInputStream(imageUri)
+                            val drawable = Drawable.createFromStream(inputStream, source)
+                            drawable?.let { d ->
+                                val width = 600
+                                val ratio = d.intrinsicHeight.toFloat() / d.intrinsicWidth.toFloat()
+                                d.setBounds(0, 0, width, (width * ratio).toInt())
+                            }
+                            drawable
+                        } catch (e: Exception) { null }
+                    }
+
+                    // 1. Carrega o HTML básico
+                    val textoBruto = Html.fromHtml(it.content, Html.FROM_HTML_MODE_LEGACY, imageGetter, null)
+                    val spannable = android.text.SpannableStringBuilder(textoBruto)
+
+                    // 2. CORREÇÃO DO MARCADOR: Procura fundos coloridos e aplica o Neon suave (Alpha 120)
                     val spans = spannable.getSpans(0, spannable.length, BackgroundColorSpan::class.java)
                     for (span in spans) {
                         val start = spannable.getSpanStart(span)
                         val end = spannable.getSpanEnd(span)
-                        val corSuave = Color.argb(120, Color.red(span.backgroundColor), Color.green(span.backgroundColor), Color.blue(span.backgroundColor))
+                        // Pega a cor que veio (estourada) e coloca 120 de transparência
+                        val corOriginal = span.backgroundColor
+                        val corNeonSuave = Color.argb(120, Color.red(corOriginal), Color.green(corOriginal), Color.blue(corOriginal))
+
                         spannable.removeSpan(span)
-                        spannable.setSpan(BackgroundColorSpan(corSuave), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                        spannable.setSpan(BackgroundColorSpan(corNeonSuave), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                     }
+
                     etContent.setText(spannable)
-                    tvDate.text = it.date
                 }
             }
         }
     }
 
+    // Converte o conteúdo formatado do EditText para HTML e sincroniza a atualização no banco de dados
     private fun salvarNota() {
         val textoParaSalvar = Html.toHtml(etContent.text, Html.TO_HTML_PARAGRAPH_LINES_CONSECUTIVE)
         lifecycleScope.launch(Dispatchers.IO) {
@@ -325,4 +366,6 @@ class NoteDetailActivity : AppCompatActivity() {
             }
         }
     }
+
+
 }
