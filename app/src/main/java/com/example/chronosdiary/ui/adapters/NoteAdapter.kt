@@ -1,6 +1,7 @@
 package com.example.chronosdiary.ui.adapters
 
 import android.content.Intent
+import android.text.Html
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -33,15 +34,18 @@ class NoteAdapter(private var notes: List<Note>) : RecyclerView.Adapter<NoteAdap
     override fun onBindViewHolder(holder: NoteViewHolder, position: Int) {
         val note = notes[position]
         holder.dateText.text = note.date
-        holder.previewText.text = note.content
+
+        // CORREÇÃO AQUI: Limpa as tags HTML para não aparecer <p dir="ltr">
+        val textoLimpo = Html.fromHtml(note.content, Html.FROM_HTML_MODE_LEGACY).toString()
+        holder.previewText.text = textoLimpo
 
         holder.itemView.setOnClickListener {
             val intent = Intent(holder.itemView.context, NoteDetailActivity::class.java)
-            // Passamos o ID da nota para a próxima tela saber qual abrir
             intent.putExtra("NOTE_ID", note.id)
             holder.itemView.context.startActivity(intent)
         }
     }
+
 
     override fun getItemCount() = notes.size
 }
