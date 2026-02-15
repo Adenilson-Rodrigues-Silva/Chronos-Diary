@@ -39,4 +39,8 @@
         <item name="cornerSize">50%</item>
     </style>
 
+    <style name="SquareNeonImage">
+        <item name="cornerSize">12dp</item>
+    </style>
+
 </resources>

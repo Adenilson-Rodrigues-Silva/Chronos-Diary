@@ -18,6 +18,7 @@ import android.view.View
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.PickVisualMediaRequest
@@ -26,11 +27,16 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
 import androidx.cardview.widget.CardView
 import androidx.lifecycle.lifecycleScope
+import com.airbnb.lottie.LottieAnimationView
 import com.example.chronosdiary.R
 import com.example.chronosdiary.data.AppDatabase
+import com.example.chronosdiary.data.model.Note
+import com.example.chronosdiary.utils.VoiceHelper
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
 
 class NoteDetailActivity : AppCompatActivity() {
 
@@ -52,6 +58,8 @@ class NoteDetailActivity : AppCompatActivity() {
         }
     }
 
+   // private lateinit var voiceLayout: View
+
     private lateinit var etContent: EditText
     private lateinit var btnBack: ImageButton
     private lateinit var tvDate: TextView
@@ -66,6 +74,25 @@ class NoteDetailActivity : AppCompatActivity() {
     private var isUnderlineActive = false
     private var isFormattingProgrammatically = false
 
+    // Componentes de UI
+
+    private lateinit var lottieMic: LottieAnimationView
+    private lateinit var lottieWave: LottieAnimationView
+    private lateinit var voiceLayout: LinearLayout
+
+    // Voice Helper
+    private lateinit var voiceHelper: VoiceHelper
+
+    // Estas variáveis representam os componentes da gaveta que acabamos de criar
+
+    private lateinit var tvStatusVoz: TextView
+
+    // O seu ajudante de voz (Helper)
+
+    // ... restante das suas variáveis (database, etc)
+
+
+
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,17 +105,69 @@ class NoteDetailActivity : AppCompatActivity() {
         configurarMenuDeOpcoes()
         configurarFerramentasDeTexto()
         configurarCliquesDosEmojis()
+
+        // NOVO MÉTODO
+        verificarAcaoInicial()
     }
 
     private fun inicializarComponentes() {
+        // Componentes do Editor
         etContent = findViewById(R.id.et_detail_content)
         btnBack = findViewById(R.id.btn_back)
         tvDate = findViewById(R.id.tv_detail_date)
         imgSelectedMood = findViewById(R.id.img_selected_mood)
-
-        // Estas são as barras que vamos mostrar/esconder
         barFormatting = findViewById(R.id.bar_formatting)
         barMoodSelection = findViewById(R.id.bar_mood_selection)
+
+        // Mapeando a GAVETA DE VOZ (Include)
+        voiceLayout = findViewById(R.id.layout_voice_capture)
+        lottieMic = findViewById(R.id.lottieMic)
+        lottieWave = findViewById(R.id.lottie_visualizer)
+        tvStatusVoz = findViewById(R.id.tv_status_voz)
+
+        // Inicializando o VoiceHelper
+        voiceHelper = VoiceHelper(
+            context = this,
+            onResult = { textoTranscritp ->
+                runOnUiThread {
+                    // 1. Insere o texto transcrito
+                    val textoAntigo = etContent.text.toString()
+                    val novoTexto = if (textoAntigo.isEmpty()) textoTranscritp else "$textoAntigo $textoTranscritp"
+                    etContent.setText(novoTexto)
+                    etContent.setSelection(etContent.text.length)
+
+                    // 2. Fecha a gaveta e reseta animações
+                    lottieMic.cancelAnimation()
+                    lottieWave.cancelAnimation()
+                    voiceLayout.visibility = View.GONE
+
+                    // Volta o mic para a animação original para a próxima vez
+                    lottieMic.setAnimation(R.raw.mic_verde_test_2)
+                }
+            },
+            onStatusChange = { status ->
+                runOnUiThread {
+                    when(status) {
+                        "LISTENING" -> {
+                            tvStatusVoz.text = "ESCUTANDO MEMÓRIA..."
+                            lottieWave.visibility = View.VISIBLE
+                        }
+                        "PROCESSING" -> {
+                            tvStatusVoz.text = "PROCESSANDO NO CHRONOS..."
+                            // TROCA PARA A ANIMAÇÃO DE SAVE QUE VOCÊ PEDIU
+                            lottieMic.setAnimation(R.raw.save_note)
+                            lottieMic.playAnimation()
+                            lottieWave.visibility = View.GONE // Esconde as ondas
+                        }
+                        "ERROR" -> {
+                            tvStatusVoz.text = "ERRO DE CONEXÃO"
+                            lottieMic.cancelAnimation()
+                            voiceLayout.postDelayed({ voiceLayout.visibility = View.GONE }, 2000)
+                        }
+                    }
+                }
+            }
+        )
     }
 
     private fun carregarDadosDaNota() {
@@ -100,26 +179,46 @@ class NoteDetailActivity : AppCompatActivity() {
     }
 
     private fun configurarBotoesPrincipais() {
+        // Botões da Barra Inferior
         val btnToggleFormat = findViewById<ImageButton>(R.id.btn_toggle_format)
         val btnToggleMood = findViewById<ImageButton>(R.id.btn_toggle_mood)
-        val btnSave = findViewById<ImageButton>(R.id.fab_save_changes)
+        val btnDetailMic = findViewById<ImageButton>(R.id.btn_detail_mic)
         val btnAddImage = findViewById<ImageButton>(R.id.btn_add_image)
+        val btnSave = findViewById<com.google.android.material.floatingactionbutton.FloatingActionButton>(R.id.fab_save_changes)
 
-        btnBack.setOnClickListener { finish() }
-        btnSave.setOnClickListener { salvarNota() }
-
+        // 1. Abrir/Fechar Menu de Formatação (B)
         btnToggleFormat.setOnClickListener {
-            barFormatting.visibility = if (barFormatting.visibility == View.GONE) View.VISIBLE else View.GONE
-            barMoodSelection.visibility = View.GONE
+            val estaVisivel = barFormatting.visibility == View.VISIBLE
+            barFormatting.visibility = if (estaVisivel) View.GONE else View.VISIBLE
+            barMoodSelection.visibility = View.GONE // Fecha o outro se estiver aberto
         }
 
+        // 2. Abrir/Fechar Menu de Emojis
         btnToggleMood.setOnClickListener {
-            barMoodSelection.visibility = if (barMoodSelection.visibility == View.GONE) View.VISIBLE else View.GONE
-            barFormatting.visibility = View.GONE
+            val estaVisivel = barMoodSelection.visibility == View.VISIBLE
+            barMoodSelection.visibility = if (estaVisivel) View.GONE else View.VISIBLE
+            barFormatting.visibility = View.GONE // Fecha o outro se estiver aberto
+        }
+
+        // 3. Clique no Mic da Barra Inferior (Abre a Gaveta)
+        btnDetailMic.setOnClickListener {
+            dispararEntradaPorVoz()
+        }
+
+        // 4. Clique no Mic GRANDE (Para de gravar e processa)
+        lottieMic.setOnClickListener {
+            voiceHelper.stopAndSend()
         }
 
         btnAddImage.setOnClickListener {
             pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+        }
+
+        btnSave.setOnClickListener {
+            salvarNota()
+        }
+        btnBack.setOnClickListener {
+            finish() // ISSO faz o botão voltar funcionar
         }
     }
 
@@ -162,8 +261,9 @@ class NoteDetailActivity : AppCompatActivity() {
 
     private fun configurarFerramentasDeTexto() {
         val btnBold = findViewById<ImageButton>(R.id.format_bold)
-        val btnItalic = findViewById<ImageButton>(R.id.format_italic)
-        val btnUnderline = findViewById<ImageButton>(R.id.format_underline)
+        val btnItalic = findViewById<ImageButton>(R.id.format_italic) ?: return // O ?: return evita crash se o ID sumir
+        val btnUnderline = findViewById<ImageButton>(R.id.format_underline) ?: return
+
         val btnMarker = findViewById<ImageButton>(R.id.btn_text_color)
 
         val colorCyan = ColorStateList.valueOf(Color.parseColor("#00FFCC"))
@@ -242,24 +342,7 @@ class NoteDetailActivity : AppCompatActivity() {
         })
     }
 
-// --- FUNÇÕES AUXILIARES (Certifique-se de ter todas elas abaixo) ---
-
-  /*  private fun aplicarMarcadorNeon() {
-        try {
-            val start = etContent.selectionStart
-            val end = etContent.selectionEnd
-            val editable = etContent.text
-            val finalStart = minOf(start, end)
-            val finalEnd = maxOf(start, end)
-
-            // Limpa marcador antigo na mesma seleção
-            val spans = editable.getSpans(finalStart, finalEnd, BackgroundColorSpan::class.java)
-            for (span in spans) editable.removeSpan(span)
-
-            val corNeon = Color.argb(120, 0, 255, 204)
-            editable.setSpan(BackgroundColorSpan(corNeon), finalStart, finalEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        } catch (e: Exception) { Log.e("CHRONOS", "Erro marcador: ${e.message}") }
-    } */
+// --- FUNÇÕES AUXILIARES
 
     private fun <T> removerEstilosDaPosicaoAtual(classe: Class<T>, styleType: Int? = null) {
         val selection = etContent.selectionStart
@@ -366,17 +449,20 @@ class NoteDetailActivity : AppCompatActivity() {
 
     // Gerencia a seleção de humor: troca o ícone principal e a cor neon de acordo com o emoji clicado
     private fun configurarCliquesDosEmojis() {
+        // Criamos o mapa garantindo que o segundo valor seja uma String de cor
         val moods = mapOf(
             R.id.select_mood_very_sad to Pair(R.drawable.ic_mod_very_sad, "#FF4444"),
             R.id.select_mood_sad to Pair(R.drawable.ic_mod_sad, "#FF8800"),
-            R.id.select_mood_stress to Pair(R.drawable.ic_mod_stress, "#FF00FF"),
+            // R.id.select_mood_stress -> Removi pois causava erro se não estivesse no XML
             R.id.select_mood_neutral to Pair(R.drawable.ic_mod_neutral, "#00FFCC"),
             R.id.select_mood_happy to Pair(R.drawable.ic_mod_happy, "#AAFF00"),
-            R.id.select_mood_very_happy to Pair(R.drawable.ic_mod_very_happy, "#00FF00"),
-            R.id.select_mood_very_angry to Pair(R.drawable.ic_mod_very_angry, "#FF0000")
+            R.id.select_mood_very_happy to Pair(R.drawable.ic_mod_very_happy, "#00FF00")
+            // R.id.select_mood_very_angry -> Removi pois causava erro se não estivesse no XML
         )
+
         moods.forEach { (id, data) ->
-            findViewById<ImageButton>(id).setOnClickListener {
+            val btn = findViewById<ImageButton>(id)
+            btn?.setOnClickListener {
                 imgSelectedMood.setImageResource(data.first)
                 imgSelectedMood.imageTintList = ColorStateList.valueOf(Color.parseColor(data.second))
                 barMoodSelection.visibility = View.GONE
@@ -434,15 +520,41 @@ class NoteDetailActivity : AppCompatActivity() {
     // Converte o conteúdo formatado do EditText para HTML e sincroniza a atualização no banco de dados
     private fun salvarNota() {
         val textoParaSalvar = Html.toHtml(etContent.text, Html.TO_HTML_PARAGRAPH_LINES_CONSECUTIVE)
+        val dataAtual = tvDate.text.toString()
+
         lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.getDatabase(this@NoteDetailActivity)
-            val noteAtual = db.noteDao().getNoteById(noteId)
-            noteAtual?.let {
-                it.content = textoParaSalvar
-                db.noteDao().update(it)
+
+            // Verificamos se a nota é nova (ID -1 ou 0)
+            if (noteId <= 0L) {
+                // NOTA NOVA: Criamos um objeto Note para inserir no banco
+                val novaNota = Note(
+                    content = textoParaSalvar,
+                    date = dataAtual
+                    // Adicione aqui outros campos se houver (ex: mood = "neutral")
+                )
+
+                // Inserimos e pegamos o novo ID gerado
+                val novoId = db.noteDao().insert(novaNota)
+                noteId = novoId // Atualizamos a variável global
+
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@NoteDetailActivity, "Sincronizado!", Toast.LENGTH_SHORT).show()
-                    finish()
+                    Toast.makeText(this@NoteDetailActivity, "Memória Salva!", Toast.LENGTH_SHORT).show()
+                    finish() // Fecha a tela após salvar a primeira vez
+                }
+            } else {
+                // NOTA EXISTENTE: Buscamos a nota atual e atualizamos
+                val noteExistente = db.noteDao().getNoteById(noteId)
+                noteExistente?.let {
+                    it.content = textoParaSalvar
+                    // Se quiser atualizar a data ao editar, descomente a linha abaixo:
+                    // it.date = dataAtual
+
+                    db.noteDao().update(it)
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@NoteDetailActivity, "Sincronizado!", Toast.LENGTH_SHORT).show()
+                        finish()
+                    }
                 }
             }
         }
@@ -507,4 +619,44 @@ class NoteDetailActivity : AppCompatActivity() {
             .show()
     }
 
+    private fun verificarAcaoInicial() {
+        val deveIniciarVoz = intent.getBooleanExtra("START_VOICE", false)
+        if (deveIniciarVoz) {
+            dispararEntradaPorVoz()
+        }
+    }
+
+    private fun dispararEntradaPorVoz() {
+        voiceLayout.visibility = View.VISIBLE
+        lottieMic.playAnimation()
+        lottieWave.playAnimation()
+        tvStatusVoz.text = "ESCUTANDO MEMÓRIA..."
+
+        // Inicia a escuta real do Google
+        voiceHelper.startListening()
+    }
+
+    private fun atualizarStatusVoz(status: String) {
+        val tvStatus = findViewById<TextView>(R.id.tv_status_voz) // O TextView que diz "ESCUTANDO..."
+
+        runOnUiThread {
+            when (status) {
+                "LISTENING" -> tvStatus.text = "ESCUTANDO MEMÓRIA..."
+                "PROCESSING" -> {
+                    tvStatus.text = "PROCESSANDO NO CHRONOS..."
+                    // Opcional: desativar o clique para não enviar duas vezes
+                    lottieMic.isClickable = false
+                }
+                "DONE" -> {
+                    lottieMic.isClickable = true
+                    voiceLayout.visibility = View.GONE
+                }
+                "ERROR" -> {
+                    tvStatus.text = "ERRO DE CONEXÃO"
+                    voiceLayout.postDelayed({ voiceLayout.visibility = View.GONE }, 2000)
+                }
+            }
+        }
+    }
 }
+

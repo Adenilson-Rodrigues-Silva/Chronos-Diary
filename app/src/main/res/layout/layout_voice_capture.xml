@@ -2,40 +2,41 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/layout_voice_capture"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
+    android:background="#E6000000"
+    android:gravity="bottom"
     android:orientation="vertical"
-    android:background="@color/chronos_dark_gray"
-    android:paddingTop="12dp"
-    android:paddingBottom="20dp"
-    android:gravity="center_horizontal">
-
-    <View
-        android:layout_width="40dp"
-        android:layout_height="3dp"
-        android:background="@color/neon_green"
-        android:layout_marginBottom="10dp"/>
+    android:paddingBottom="50dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:visibility="gone">
 
     <com.airbnb.lottie.LottieAnimationView
         android:id="@+id/lottie_visualizer"
         android:layout_width="match_parent"
-        android:layout_height="70dp"
-        android:layout_marginBottom="-25dp"
-        app:lottie_rawRes="@raw/wave_test_3"
-        app:lottie_autoPlay="false"
+        android:layout_height="100dp"
+        app:lottie_autoPlay="true"
         app:lottie_loop="true"
-        android:scaleType="centerInside"
-        android:background="@android:color/transparent"
-        app:lottie_renderMode="software"
-        android:visibility="gone" />
+        app:lottie_rawRes="@raw/wave_test_3" />
 
     <com.airbnb.lottie.LottieAnimationView
         android:id="@+id/lottieMic"
-        android:layout_width="120dp"
-        android:layout_height="120dp"
-        app:lottie_rawRes="@raw/mic_verde_test_2"
-        app:lottie_autoPlay="false"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        app:lottie_autoPlay="true"
         app:lottie_loop="true"
-        android:background="@android:color/transparent" />
+        app:lottie_rawRes="@raw/mic_verde_test_2" />
+
+    <TextView
+        android:id="@+id/tv_status_voz"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:letterSpacing="0.1"
+        android:text="ESCUTANDO MEMÓRIA..."
+        android:textColor="#00FFCC"
+        android:textStyle="bold" />
 
 </LinearLayout>

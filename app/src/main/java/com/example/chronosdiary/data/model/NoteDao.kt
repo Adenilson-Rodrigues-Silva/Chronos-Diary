@@ -14,7 +14,7 @@ interface NoteDao {
 
     // Salva uma nova nota no banco
     @Insert
-    suspend fun insert(note: Note)
+    suspend fun insert(note: Note): Long // O ': Long' é obrigatório para retornar o ID gerado
 
     // Pega todas as notas da mais nova para a mais antiga
     @Query("SELECT * FROM notes_table ORDER BY id DESC")
@@ -29,6 +29,7 @@ interface NoteDao {
 
     @Delete
     suspend fun delete(note: Note)
+
 
 
 }

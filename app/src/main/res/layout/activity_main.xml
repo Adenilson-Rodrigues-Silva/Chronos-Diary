@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -25,14 +24,16 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
+
                     <TextView
                         android:id="@+id/text_header"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-black"
                         android:text="Meu Diário"
                         android:textColor="#FFFFFF"
-                        android:textSize="28sp"
-                        android:fontFamily="sans-serif-black" />
+                        android:textSize="28sp" />
+
                     <TextView
                         android:id="@+id/text_subheader"
                         android:layout_width="wrap_content"
@@ -57,14 +58,15 @@
             <HorizontalScrollView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:scrollbars="none"
-                android:layout_marginBottom="32dp">
+                android:layout_marginBottom="32dp"
+                android:scrollbars="none">
+
                 <LinearLayout
                     android:id="@+id/calendar_container"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center" />
+                    android:gravity="center"
+                    android:orientation="horizontal" />
             </HorizontalScrollView>
 
             <androidx.recyclerview.widget.RecyclerView
@@ -72,29 +74,34 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:nestedScrollingEnabled="false"
-                android:visibility="gone" /> <LinearLayout
-            android:id="@+id/layout_vazio"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:layout_marginTop="20dp"
-            android:visibility="visible"> <com.airbnb.lottie.LottieAnimationView
-            android:id="@+id/lottie_empty"
-            android:layout_width="250dp"
-            android:layout_height="250dp"
-            app:lottie_autoPlay="true"
-            app:lottie_loop="true"
-            app:lottie_rawRes="@raw/layout_vazio" />
-            <TextView
-                android:layout_width="wrap_content"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/layout_vazio"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Nenhuma memória no vácuo deste dia..."
-                android:textColor="#60FFFFFF"
-                android:textSize="14sp"
-                android:layout_marginTop="0dp"
-                android:textAlignment="center" />
-        </LinearLayout>
+                android:layout_marginTop="20dp"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:visibility="visible">
+
+                <com.airbnb.lottie.LottieAnimationView
+                    android:id="@+id/lottie_empty"
+                    android:layout_width="250dp"
+                    android:layout_height="250dp"
+                    app:lottie_autoPlay="true"
+                    app:lottie_loop="true"
+                    app:lottie_rawRes="@raw/layout_vazio" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="0dp"
+                    android:text="Nenhuma memória no vácuo deste dia..."
+                    android:textAlignment="center"
+                    android:textColor="#60FFFFFF"
+                    android:textSize="14sp" />
+            </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_stats"
@@ -109,21 +116,23 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:padding="20dp"
-                    android:orientation="vertical">
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Humor da Semana"
                         android:textColor="#FFFFFF"
                         android:textSize="16sp"
-                        android:textStyle="bold"/>
+                        android:textStyle="bold" />
+
                     <View
                         android:id="@+id/chart_placeholder"
                         android:layout_width="match_parent"
                         android:layout_height="120dp"
                         android:layout_marginTop="16dp"
-                        android:background="#05FFFFFF"/>
+                        android:background="#05FFFFFF" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -131,17 +140,53 @@
     </androidx.core.widget.NestedScrollView>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_mic"
+        android:id="@+id/fab_write"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="28dp"
+        android:layout_marginBottom="28dp"
+        android:visibility="invisible"
+        app:backgroundTint="#00FFCC"
+        app:fabSize="mini"
+        app:srcCompat="@drawable/ic_pen2"
+        app:tint="#000000"
+
+        />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_mic_sub"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="28dp"
+        android:layout_marginBottom="28dp"
+        android:visibility="invisible"
+        app:backgroundTint="#00FFCC"
+        app:fabSize="mini"
+        app:srcCompat="@drawable/ic_mic"
+        app:tint="#000000" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_main"
+        style="@style/Widget.MaterialComponents.FloatingActionButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="24dp"
-        app:backgroundTint="#00FF00"
-        app:srcCompat="@android:drawable/ic_btn_speak_now"
+        android:contentDescription="Menu Chronos"
+        app:backgroundTint="#000000"
+        app:borderWidth="3dp"
+        app:elevation="8dp"
         app:fabCustomSize="64dp"
+
+
         app:maxImageSize="32dp"
-        app:tint="#000000"
-        app:shapeAppearanceOverlay="@style/CircleImage"
-        android:contentDescription="Gravar memória" />
+        app:shapeAppearanceOverlay="@style/SquareNeonImage"
+        app:srcCompat="@android:drawable/ic_input_add"
+        app:strokeColor="#00FFCC"
+
+        app:strokeWidth="3dp"
+        app:tint="#00FFCC" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

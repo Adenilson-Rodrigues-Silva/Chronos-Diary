@@ -16,8 +16,8 @@ import java.net.URL
 
 class VoiceHelper(
     private val context: Context,
-    val onResult: (String) -> Unit,
-    val onStatusChange: (String) -> Unit
+    private val onResult: (String) -> Unit, // Callback global
+    private val onStatusChange: (String) -> Unit // Callback global
 ) {
 
     private var audioRecord: AudioRecord? = null
@@ -31,6 +31,7 @@ class VoiceHelper(
 
     private val audioStream = ByteArrayOutputStream()
 
+    // REMOVI o parâmetro daqui para não dar erro de "muitos argumentos" na Activity
     fun startListening() {
 
         if (ActivityCompat.checkSelfPermission(
@@ -57,13 +58,10 @@ class VoiceHelper(
         audioRecord?.startRecording()
         Log.d("CHRONOS_AUDIO", "Gravação iniciada")
 
-
         scope.launch {
             val buffer = ByteArray(bufferSize)
-
             while (isRecording) {
                 val read = audioRecord?.read(buffer, 0, buffer.size) ?: 0
-                Log.d("CHRONOS_AUDIO", "Bytes lidos: $read")
                 if (read > 0) {
                     audioStream.write(buffer, 0, read)
                 }
@@ -72,6 +70,7 @@ class VoiceHelper(
     }
 
     fun stopAndSend() {
+        if (!isRecording) return
         isRecording = false
         audioRecord?.stop()
         audioRecord?.release()
@@ -81,7 +80,6 @@ class VoiceHelper(
 
         scope.launch {
             sendToGoogle(audioStream.toByteArray())
-
         }
     }
 
@@ -113,24 +111,20 @@ class VoiceHelper(
             val jsonResponse = JSONObject(response)
             val results = jsonResponse.optJSONArray("results")
 
-            // --- AQUI ESTÁ A MELHORIA ---
-            val fullTranscript = StringBuilder() // Um "balde" para juntar as frases
-
+            val fullTranscript = StringBuilder()
             if (results != null) {
                 for (i in 0 until results.length()) {
                     val transcript = results.getJSONObject(i)
                         .getJSONArray("alternatives")
                         .getJSONObject(0)
                         .getString("transcript")
-
-                    fullTranscript.append(transcript).append(" ") // Junta e dá um espaço
+                    fullTranscript.append(transcript).append(" ")
                 }
             }
             val finalResult = fullTranscript.toString().trim()
-            // ----------------------------
 
             withContext(Dispatchers.Main) {
-                onResult(finalResult) // Agora envia o texto COMPLETO
+                onResult(finalResult) // Usa o callback da classe
                 onStatusChange("DONE")
             }
 
@@ -140,75 +134,11 @@ class VoiceHelper(
         }
     }
 
-    /*
-    bloco do chat gpt , segundo o gemini esse bloco não salva toda a conversa
-    private suspend fun sendToGoogle(audioData: ByteArray) {
-        Log.d("CHRONOS_AUDIO", "Tamanho total do áudio: ${audioData.size}")
-
-
-        try {
-
-            val url = URL("https://speech.googleapis.com/v1/speech:recognize?key=${BuildConfig.GOOGLE_API_KEY}")
-            val connection = url.openConnection() as HttpURLConnection
-
-            connection.requestMethod = "POST"
-            connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
-            connection.doOutput = true
-
-            val audioBase64 = Base64.encodeToString(audioData, Base64.NO_WRAP)
-
-            val jsonRequest = JSONObject().apply {
-                put("config", JSONObject().apply {
-                    put("encoding", "LINEAR16")
-                    put("sampleRateHertz", 16000)
-                    put("languageCode", "pt-BR")
-                    put("enableAutomaticPunctuation", true)
-                    put("model", "latest_long")
-                    put("useEnhanced", true)
-                })
-                put("audio", JSONObject().apply {
-                    put("content", audioBase64)
-                })
-            }
-
-            connection.outputStream.use {
-                it.write(jsonRequest.toString().toByteArray())
-            }
-
-            val response = connection.inputStream.bufferedReader().readText()
-            val jsonResponse = JSONObject(response)
-
-            val results = jsonResponse.optJSONArray("results")
-
-            val finalText =
-                if (results != null && results.length() > 0) {
-                    results.getJSONObject(0)
-                        .getJSONArray("alternatives")
-                        .getJSONObject(0)
-                        .getString("transcript")
-                } else {
-                    ""
-                }
-
-            withContext(Dispatchers.Main) {
-                onResult(finalText)
-                onStatusChange("DONE")
-            }
-
-        } catch (e: Exception) {
-            Log.e("CHRONOS_CLOUD", "Erro: ${e.message}")
-            withContext(Dispatchers.Main) {
-                onStatusChange("ERROR")
-            }
-        }
-    } */
-
     fun destroy() {
         isRecording = false
         audioRecord?.stop()
         audioRecord?.release()
         audioRecord = null
-        // Cancela todas as tarefas pendentes da Coroutine para evitar vazamento de memória
         scope.cancel()
     }
 }
