@@ -286,4 +286,10 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         if (::voiceHelper.isInitialized) voiceHelper.destroy()
     }
+
+    override fun onResume() {
+        super.onResume()
+        // Isso força o app a recarregar as notas do banco toda vez que você volta à tela principal
+        updateFeed()
+    }
 }

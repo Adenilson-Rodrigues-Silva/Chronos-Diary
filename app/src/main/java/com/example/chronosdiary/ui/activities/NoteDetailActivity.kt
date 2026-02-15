@@ -58,6 +58,7 @@ class NoteDetailActivity : AppCompatActivity() {
     private lateinit var imgSelectedMood: ImageView
     private lateinit var barFormatting: CardView
     private lateinit var barMoodSelection: CardView
+    private lateinit var layoutMenuFormatacao: View // ou LinearLayout/CardView
 
     private var noteId: Long = -1L
     private var isBoldActive = false
@@ -84,6 +85,8 @@ class NoteDetailActivity : AppCompatActivity() {
         btnBack = findViewById(R.id.btn_back)
         tvDate = findViewById(R.id.tv_detail_date)
         imgSelectedMood = findViewById(R.id.img_selected_mood)
+
+        // Estas são as barras que vamos mostrar/esconder
         barFormatting = findViewById(R.id.bar_formatting)
         barMoodSelection = findViewById(R.id.bar_mood_selection)
     }
@@ -163,103 +166,175 @@ class NoteDetailActivity : AppCompatActivity() {
         val btnUnderline = findViewById<ImageButton>(R.id.format_underline)
         val btnMarker = findViewById<ImageButton>(R.id.btn_text_color)
 
-        // LÓGICA DO NEGRITO
+        val colorCyan = ColorStateList.valueOf(Color.parseColor("#00FFCC"))
+        val colorWhite = ColorStateList.valueOf(Color.WHITE)
+
+        // 1. NEGRITO
         btnBold.setOnClickListener {
             val start = etContent.selectionStart
             val end = etContent.selectionEnd
             if (start != end) {
-                val spannable = etContent.text
-                val spans = spannable.getSpans(start, end, StyleSpan::class.java)
-                var removido = false
-                for (span in spans) {
-                    if (span.style == Typeface.BOLD) {
-                        spannable.removeSpan(span)
-                        removido = true
-                    }
-                }
-                if (!removido) spannable.setSpan(StyleSpan(Typeface.BOLD), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                aplicarEstiloSelecao(Typeface.BOLD)
             } else {
                 isBoldActive = !isBoldActive
+                btnBold.imageTintList = if (isBoldActive) colorCyan else colorWhite
+                if (!isBoldActive) removerEstilosDaPosicaoAtual(StyleSpan::class.java, Typeface.BOLD)
             }
+            barFormatting.visibility = View.GONE
         }
 
-        // LÓGICA DO ITÁLICO
+        // 2. ITÁLICO
         btnItalic.setOnClickListener {
             val start = etContent.selectionStart
             val end = etContent.selectionEnd
             if (start != end) {
-                val spannable = etContent.text
-                val spans = spannable.getSpans(start, end, StyleSpan::class.java)
-                var temItalico = false
-                for (span in spans) {
-                    if (span.style == Typeface.ITALIC) {
-                        spannable.removeSpan(span)
-                        temItalico = true
-                    }
-                }
-                if (!temItalico) spannable.setSpan(StyleSpan(Typeface.ITALIC), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                aplicarEstiloSelecao(Typeface.ITALIC)
             } else {
                 isItalicActive = !isItalicActive
+                btnItalic.imageTintList = if (isItalicActive) colorCyan else colorWhite
+                if (!isItalicActive) removerEstilosDaPosicaoAtual(StyleSpan::class.java, Typeface.ITALIC)
             }
+            barFormatting.visibility = View.GONE
         }
 
-        // LÓGICA DO SUBLINHADO
+        // 3. SUBLINHADO
         btnUnderline.setOnClickListener {
             val start = etContent.selectionStart
             val end = etContent.selectionEnd
             if (start != end) {
-                val spannable = etContent.text
-                val spans = spannable.getSpans(start, end, UnderlineSpan::class.java)
-                if (spans.isNotEmpty()) {
-                    for (span in spans) spannable.removeSpan(span)
-                } else {
-                    spannable.setSpan(UnderlineSpan(), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                }
+                aplicarEstiloSelecaoUnderline()
             } else {
                 isUnderlineActive = !isUnderlineActive
+                btnUnderline.imageTintList = if (isUnderlineActive) colorCyan else colorWhite
+                if (!isUnderlineActive) removerEstilosDaPosicaoAtual(UnderlineSpan::class.java)
             }
+            barFormatting.visibility = View.GONE
         }
 
-        // LÓGICA DO MARCADOR NEON
+        // 4. MARCADOR NEON (AQUI ESTÁ ELE!)
         btnMarker.setOnClickListener {
             val start = etContent.selectionStart
             val end = etContent.selectionEnd
-            val editable = etContent.text
-            if (start >= 0 && end >= 0 && start != end) {
-                var finalStart = minOf(start, end)
-                var finalEnd = maxOf(start, end)
-                val existingSpans = editable.getSpans(finalStart, finalEnd, BackgroundColorSpan::class.java)
-                var removido = false
-                if (existingSpans.isNotEmpty()) {
-                    for (span in existingSpans) {
-                        editable.removeSpan(span)
-                        removido = true
-                    }
-                }
-                if (!removido) {
-                    val corNeon = Color.argb(120, 0, 255, 204)
-                    editable.setSpan(BackgroundColorSpan(corNeon), finalStart, finalEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                }
+            if (start != end) {
+                aplicarMarcadorNeon()
+            } else {
+                Toast.makeText(this, "Selecione o texto primeiro", Toast.LENGTH_SHORT).show()
             }
+            barFormatting.visibility = View.GONE
         }
 
-        // MONITOR DE DIGITAÇÃO (TEXTWATCHER)
+        // --- TEXT WATCHER ---
         etContent.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: android.text.Editable?) {
-                if (isFormattingProgrammatically || s == null) return
+                if (isFormattingProgrammatically || s == null || s.isEmpty()) return
                 val selectionStart = etContent.selectionStart
                 if (selectionStart > 0 && selectionStart == etContent.selectionEnd) {
                     try {
                         val p = selectionStart - 1
-                        if (isBoldActive) s.setSpan(StyleSpan(Typeface.BOLD), p, selectionStart, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                        if (isItalicActive) s.setSpan(StyleSpan(Typeface.ITALIC), p, selectionStart, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                        if (isUnderlineActive) s.setSpan(UnderlineSpan(), p, selectionStart, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                    } catch (e: Exception) {}
+                        if (isBoldActive) s.setSpan(StyleSpan(Typeface.BOLD), p, selectionStart, Spanned.SPAN_EXCLUSIVE_INCLUSIVE)
+                        if (isItalicActive) s.setSpan(StyleSpan(Typeface.ITALIC), p, selectionStart, Spanned.SPAN_EXCLUSIVE_INCLUSIVE)
+                        if (isUnderlineActive) s.setSpan(UnderlineSpan(), p, selectionStart, Spanned.SPAN_EXCLUSIVE_INCLUSIVE)
+                    } catch (e: Exception) { e.printStackTrace() }
                 }
             }
         })
+    }
+
+// --- FUNÇÕES AUXILIARES (Certifique-se de ter todas elas abaixo) ---
+
+  /*  private fun aplicarMarcadorNeon() {
+        try {
+            val start = etContent.selectionStart
+            val end = etContent.selectionEnd
+            val editable = etContent.text
+            val finalStart = minOf(start, end)
+            val finalEnd = maxOf(start, end)
+
+            // Limpa marcador antigo na mesma seleção
+            val spans = editable.getSpans(finalStart, finalEnd, BackgroundColorSpan::class.java)
+            for (span in spans) editable.removeSpan(span)
+
+            val corNeon = Color.argb(120, 0, 255, 204)
+            editable.setSpan(BackgroundColorSpan(corNeon), finalStart, finalEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        } catch (e: Exception) { Log.e("CHRONOS", "Erro marcador: ${e.message}") }
+    } */
+
+    private fun <T> removerEstilosDaPosicaoAtual(classe: Class<T>, styleType: Int? = null) {
+        val selection = etContent.selectionStart
+        val spannable = etContent.text
+        val spans = spannable.getSpans(selection, selection, classe)
+        for (span in spans) {
+            if (styleType == null || (span is StyleSpan && span.style == styleType)) {
+                val start = spannable.getSpanStart(span)
+                spannable.setSpan(span, start, selection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
+        }
+    }
+
+    // Função auxiliar para o underline não dar erro de índice
+    private fun aplicarEstiloSelecaoUnderline() {
+        try {
+            val start = etContent.selectionStart
+            val end = etContent.selectionEnd
+            val spannable = etContent.text
+            val finalStart = minOf(start, end)
+            val finalEnd = maxOf(start, end)
+
+            val spans = spannable.getSpans(finalStart, finalEnd, UnderlineSpan::class.java)
+            if (spans.isNotEmpty()) {
+                for (span in spans) spannable.removeSpan(span)
+            } else {
+                spannable.setSpan(UnderlineSpan(), finalStart, finalEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
+        } catch (e: Exception) { e.printStackTrace() }
+    }
+
+    // Função auxiliar para o marcador não crashar
+    private fun aplicarMarcadorNeon() {
+        try {
+            val start = etContent.selectionStart
+            val end = etContent.selectionEnd
+            if (start != end) {
+                val editable = etContent.text
+                val finalStart = minOf(start, end)
+                val finalEnd = maxOf(start, end)
+                val spans = editable.getSpans(finalStart, finalEnd, BackgroundColorSpan::class.java)
+                for (span in spans) editable.removeSpan(span)
+                val corNeon = Color.argb(120, 0, 255, 204)
+                editable.setSpan(BackgroundColorSpan(corNeon), finalStart, finalEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
+        } catch (e: Exception) { e.printStackTrace() }
+    }
+
+    // --- FUNÇÃO AUXILIAR (Adicione logo abaixo da função acima) ---
+// Isso evita crash e duplicação de código
+    private fun aplicarEstiloSelecao(style: Int) {
+        try {
+            val start = etContent.selectionStart
+            val end = etContent.selectionEnd
+            val spannable = etContent.text
+
+            if (start == -1 || end == -1 || start == end) return
+
+            val finalStart = minOf(start, end)
+            val finalEnd = maxOf(start, end)
+
+            val spans = spannable.getSpans(finalStart, finalEnd, StyleSpan::class.java)
+            var spanRemovido = false
+            for (span in spans) {
+                if (span.style == style) {
+                    spannable.removeSpan(span)
+                    spanRemovido = true
+                }
+            }
+            if (!spanRemovido) {
+                spannable.setSpan(StyleSpan(style), finalStart, finalEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
+        } catch (e: Exception) {
+            Log.e("CHRONOS", "Erro aplicarEstilo: ${e.message}")
+        }
     }
 
     // --- MANTIVE AS DEMAIS FUNÇÕES QUE VOCÊ JÁ TINHA ---
