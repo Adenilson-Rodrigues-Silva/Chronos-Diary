@@ -1,7 +1,12 @@
 package com.example.chronosdiary.ui.activities
 
+import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
+import android.view.LayoutInflater
 import android.view.View
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.biometric.BiometricManager
@@ -13,145 +18,122 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.airbnb.lottie.LottieAnimationView
-import com.example.chronosdiary.data.model.Note
-import com.example.chronosdiary.ui.adapters.NoteAdapter
 import com.example.chronosdiary.R
 import com.example.chronosdiary.data.AppDatabase
+import com.example.chronosdiary.data.model.Note
 import com.example.chronosdiary.data.model.NoteDao
+import com.example.chronosdiary.ui.adapters.NoteAdapter
 import com.example.chronosdiary.utils.VoiceHelper
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.airbnb.lottie.LottieAnimationView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.*
 import java.util.concurrent.Executor
-
-
 
 class MainActivity : AppCompatActivity() {
 
+    // UI Components
+    private lateinit var rvNotes: RecyclerView
+    private lateinit var fabMicPrincipal: FloatingActionButton
+    private lateinit var noteAdapter: NoteAdapter
 
+    // Database
+    private lateinit var database: AppDatabase
+    private lateinit var noteDao: NoteDao
 
-    private lateinit var lottieMic: LottieAnimationView
-
-
-
+    // Biometrics
     private lateinit var executor: Executor
     private lateinit var biometricPrompt: BiometricPrompt
     private lateinit var promptInfo: BiometricPrompt.PromptInfo
 
-    private lateinit var noteAdapter: NoteAdapter
-    private val notesList = mutableListOf<Note>()
-
+    // Voice Helper
     private lateinit var voiceHelper: VoiceHelper
-
-    private lateinit var fabMicPrincipal: FloatingActionButton // Usaremos o FAB que está no seu XML
-    private lateinit var database: AppDatabase
-    private lateinit var noteDao: NoteDao
-    private lateinit var rvNotes: RecyclerView
-    // Mude de: private lateinit var lottieMic: LottieAnimationView
-// Para:
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        try {
+            setContentView(R.layout.activity_main)
 
-        checkAudioPermission()
+            // 1. Inicialização do Adapter (Evita o erro de Lateinit)
+            noteAdapter = NoteAdapter(listOf())
 
-        // AQUI O ERRO MORRE: Vinculamos o ID que existe no activity_main.xml
-        rvNotes = findViewById(R.id.recycler_notes)
-        fabMicPrincipal = findViewById(R.id.fab_mic) // Usando o ID fab_mic do seu XML
+            // 2. Vincular Views
+            rvNotes = findViewById(R.id.recycler_notes)
+            fabMicPrincipal = findViewById(R.id.fab_mic)
 
-        // Inicializar Banco
-        database = AppDatabase.getDatabase(this)
-        noteDao = database.noteDao()
+            // 3. Configurar RecyclerView
+            rvNotes.adapter = noteAdapter
+            rvNotes.layoutManager = LinearLayoutManager(this)
 
-        // Configurar o Adapter
-        noteAdapter = NoteAdapter(listOf())
-        rvNotes.adapter = noteAdapter
-        rvNotes.layoutManager = LinearLayoutManager(this)
+            // 4. Inicializar Banco de Dados
+            database = AppDatabase.getDatabase(this)
+            noteDao = database.noteDao()
 
-        // IMPORTANTE: O clique do botão da tela principal abre o seu Google Cloud BottomSheet
-        fabMicPrincipal.setOnClickListener {
-            showVoiceSheet()
+            // 5. Configurar Botão do Microfone
+            fabMicPrincipal.setOnClickListener {
+                checkAudioPermission()
+                showVoiceSheet()
+            }
+
+            // 6. Iniciar Fluxo de Segurança (Biometria)
+            rvNotes.postDelayed({
+                if (checkDeviceCanAuthenticate()) setupBiometric()
+                else showChronosLogs()
+            }, 500)
+
+            // 7. Montar Calendário
+            configurarCalendarioHorizontal()
+
+        } catch (e: Exception) {
+            Log.e("CHRONOS_FATAL", "Erro no onCreate: ${e.message}")
         }
-
-        // Biometria
-        if (checkDeviceCanAuthenticate()) {
-            setupBiometric()
-        } else {
-            showChronosLogs()
-        }
-
-        // Configuração do Clique do Microfone (Ajustado para o seu BottomSheet)
-      //  lottieMic.setOnClickListener {
-        //    showVoiceSheet()
-       // }
     }
 
     private fun showChronosLogs() {
         runOnUiThread {
             rvNotes.visibility = View.VISIBLE
-            // Se você mudou o nome da variável para fabMicPrincipal:
             fabMicPrincipal.visibility = View.VISIBLE
-            refreshNotes()
+            updateFeed() // Carrega as notas do dia
         }
     }
 
-    // Criar essa função separada facilita sua vida
-    private fun refreshNotes() {
-        lifecycleScope.launch(Dispatchers.IO) {
-            val notasSalvas = noteDao.getAllNotes()
-            runOnUiThread {
-                noteAdapter.updateNotes(notasSalvas)
-                // Se a lista estiver vazia agora, ela continuará vazia até você carregar
-            }
-        }
-    }
-
-    // Função auxiliar para deixar o onCreate mais limpo
-    private fun checkAudioPermission() {
-        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO)
-            != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.RECORD_AUDIO), 1)
-        }
+    private fun updateFeed() {
+        val hoje = Calendar.getInstance()
+        filtrarNotasPorData(hoje)
     }
 
     private fun checkDeviceCanAuthenticate(): Boolean {
         val biometricManager = BiometricManager.from(this)
-        when (biometricManager.canAuthenticate(BIOMETRIC_STRONG or DEVICE_CREDENTIAL)) {
-            BiometricManager.BIOMETRIC_SUCCESS -> return true
+        return when (biometricManager.canAuthenticate(BIOMETRIC_STRONG or DEVICE_CREDENTIAL)) {
+            BiometricManager.BIOMETRIC_SUCCESS -> true
             else -> {
-                Toast.makeText(
-                    this,
-                    "Biometria necessária para acessar o Chronos.",
-                    Toast.LENGTH_LONG
-                ).show()
-                return false
+                Toast.makeText(this, "Segurança Biométrica necessária", Toast.LENGTH_SHORT).show()
+                false
             }
         }
     }
 
     private fun setupBiometric() {
         executor = ContextCompat.getMainExecutor(this)
-        biometricPrompt = BiometricPrompt(
-            this, executor,
+        biometricPrompt = BiometricPrompt(this, executor,
             object : BiometricPrompt.AuthenticationCallback() {
                 override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                     super.onAuthenticationSucceeded(result)
                     showChronosLogs()
                 }
-
                 override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                     super.onAuthenticationError(errorCode, errString)
-                    finish()
+                    if (errorCode != BiometricPrompt.ERROR_USER_CANCELED) finish()
                 }
             })
 
         promptInfo = BiometricPrompt.PromptInfo.Builder()
-            .setTitle("> SYSTEM_LOCKED")
-            .setSubtitle("VERIFY_IDENTITY_SCAN_REQUIRED")
+            .setTitle("CHRONOS_LOCKED")
+            .setSubtitle("VERIFICAÇÃO DE IDENTIDADE REQUERIDA")
             .setAllowedAuthenticators(BIOMETRIC_STRONG or DEVICE_CREDENTIAL)
             .setConfirmationRequired(false)
             .build()
@@ -159,118 +141,149 @@ class MainActivity : AppCompatActivity() {
         biometricPrompt.authenticate(promptInfo)
     }
 
+    private fun filtrarNotasPorData(data: Calendar) {
+        val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        val dataAlvo = sdf.format(data.time)
 
-    private fun addNewLog(textoFinal: String) {
-        // 1. Criamos a data formatada para o diário
-        val sdf = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
-        val dataFormatada = sdf.format(java.util.Date())
-
-        // 2. Criamos o objeto Note (usando o seu modelo Note.kt)
-        val novaNota = Note(date = dataFormatada, content = textoFinal)
-
-        // 3. Salvamos no banco em uma Coroutine (para não travar a tela)
         lifecycleScope.launch(Dispatchers.IO) {
-            noteDao.insert(novaNota) // Salva no banco!
+            val todas = noteDao.getAllNotes()
+            // O segredo do Feed: Usamos contains para ignorar a hora exata
+            val filtradas = todas.filter { it.date.contains(dataAlvo) }
 
-            // 4. Após salvar, atualizamos a lista na tela
-            val listaAtualizada = noteDao.getAllNotes()
+            withContext(Dispatchers.Main) {
+                // Atualiza o adapter com a lista filtrada
+                noteAdapter.updateNotes(filtradas)
 
-            runOnUiThread {
-                noteAdapter.updateNotes(listaAtualizada)
-                // Opcional: faz a lista rolar para o topo para ver a nota nova
-                rvNotes.scrollToPosition(0)
+                val layoutVazio = findViewById<LinearLayout>(R.id.layout_vazio)
+                val rvNotes = findViewById<RecyclerView>(R.id.recycler_notes)
+
+                if (filtradas.isEmpty()) {
+                    // Se não tem notas: Mostra Astronauta, Esconde Lista
+                    layoutVazio?.visibility = View.VISIBLE
+                    rvNotes?.visibility = View.GONE
+
+                    // Força a animação do astronauta a rodar
+                    val lottieEmpty = findViewById<LottieAnimationView>(R.id.lottie_empty)
+                    lottieEmpty?.playAnimation()
+                } else {
+                    // Se tem notas: Esconde Astronauta, Mostra Lista
+                    layoutVazio?.visibility = View.GONE
+                    rvNotes?.visibility = View.VISIBLE
+                }
             }
         }
     }
 
+    private fun configurarCalendarioHorizontal() {
+        val container = findViewById<LinearLayout>(R.id.calendar_container) ?: return
+        val inflater = LayoutInflater.from(this)
+        val hoje = Calendar.getInstance()
+        val cal = Calendar.getInstance()
+
+        container.removeAllViews()
+
+        for (i in 0 until 14) {
+            val view = inflater.inflate(R.layout.item_calendar_day, container, false)
+            val diaAtual = cal.clone() as Calendar
+
+            val txtNome = view.findViewById<TextView>(R.id.text_day_name)
+            val txtNum = view.findViewById<TextView>(R.id.text_day_number)
+
+            txtNome.text = SimpleDateFormat("EEE", Locale("pt", "BR")).format(diaAtual.time).uppercase()
+            txtNum.text = SimpleDateFormat("dd", Locale.getDefault()).format(diaAtual.time)
+
+            if (isMesmoDia(hoje, diaAtual)) {
+                txtNum.setBackgroundResource(R.drawable.bg_dia_selecionado)
+                atualizarSubtitulo(diaAtual)
+            }
+
+            view.setOnClickListener {
+                atualizarSelecaoCalendario(view, container)
+                atualizarSubtitulo(diaAtual)
+                filtrarNotasPorData(diaAtual)
+            }
+
+            container.addView(view)
+            cal.add(Calendar.DAY_OF_YEAR, -1)
+        }
+    }
+
+    private fun isMesmoDia(c1: Calendar, c2: Calendar) =
+        c1.get(Calendar.YEAR) == c2.get(Calendar.YEAR) && c1.get(Calendar.DAY_OF_YEAR) == c2.get(Calendar.DAY_OF_YEAR)
+
+    private fun atualizarSubtitulo(data: Calendar) {
+        val sdf = SimpleDateFormat("EEEE, dd 'de' MMMM", Locale("pt", "BR"))
+        findViewById<TextView>(R.id.text_subheader).text = sdf.format(data.time).replaceFirstChar { it.uppercase() }
+    }
+
+    private fun atualizarSelecaoCalendario(selecionada: View, container: LinearLayout) {
+        for (i in 0 until container.childCount) {
+            container.getChildAt(i).findViewById<TextView>(R.id.text_day_number).setBackgroundResource(R.drawable.bg_dia_vazio)
+        }
+        selecionada.findViewById<TextView>(R.id.text_day_number).setBackgroundResource(R.drawable.bg_dia_selecionado)
+    }
+
+    private fun checkAudioPermission() {
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.RECORD_AUDIO), 1)
+        }
+    }
+
     private fun showVoiceSheet() {
-        val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(this)
+        val dialog = BottomSheetDialog(this)
         val view = layoutInflater.inflate(R.layout.layout_voice_capture, null)
         dialog.setContentView(view)
 
-        val lottieVisualizer = view.findViewById<LottieAnimationView>(R.id.lottie_visualizer)
-        // Buscamos o mic da VIEW do BottomSheet
-        val lottieMicCloud = view.findViewById<LottieAnimationView>(R.id.lottieMic)
+        val lottieWaves = view.findViewById<LottieAnimationView>(R.id.lottie_visualizer)
+        val lottieMic = view.findViewById<LottieAnimationView>(R.id.lottieMic)
 
-        voiceHelper = VoiceHelper(
-            this,
-            onResult = { textoFinal ->
-                runOnUiThread {
-                    if (textoFinal.isNotEmpty()) {
-                        addNewLog(textoFinal)
-                    }
-                    lottieVisualizer.cancelAnimation()
-                    view.postDelayed({ dialog.dismiss() }, 1000)
-                }
+        voiceHelper = VoiceHelper(this,
+            onResult = { texto ->
+                if (texto.isNotEmpty()) addNewLog(texto)
+                dialog.dismiss()
             },
             onStatusChange = { status ->
                 runOnUiThread {
                     when (status) {
                         "LISTENING" -> {
-                            lottieVisualizer.visibility = View.VISIBLE
+                            lottieWaves?.visibility = View.VISIBLE
+                            lottieWaves?.setAnimation(R.raw.wave_test_3)
+                            lottieWaves?.playAnimation()
 
-                            // AQUI: Devolvendo a escala que você gostava
-                            lottieVisualizer.scaleX = 0.5f
-                            lottieVisualizer.scaleY = 0.8f
-                            lottieVisualizer.playAnimation()
-
-                            // AQUI: Usamos lottieMicCloud
-                            lottieMicCloud.setAnimation(R.raw.mic_verde_test_2)
-                            lottieMicCloud.playAnimation()
+                            lottieMic?.setAnimation(R.raw.mic_verde_test_2)
+                            lottieMic?.playAnimation()
                         }
-
                         "PROCESSING" -> {
-                            lottieVisualizer.cancelAnimation()
-                            lottieVisualizer.visibility = View.GONE
-
-                            // AQUI: Usamos lottieMicCloud
-                            lottieMicCloud.setAnimation(R.raw.save_note)
-                            lottieMicCloud.playAnimation()
-                            lottieMicCloud.repeatCount = 0 // ou loop(false)
+                            lottieWaves?.visibility = View.GONE
+                            lottieMic?.setAnimation(R.raw.save_note)
+                            lottieMic?.playAnimation()
+                            lottieMic?.repeatCount = 0
                         }
                     }
                 }
             }
         )
 
-        // AQUI: O clique deve ser na lottieMicCloud
-        lottieMicCloud.setOnClickListener {
-            if (::voiceHelper.isInitialized) {
-                voiceHelper.stopAndSend()
+        lottieMic?.setOnClickListener { voiceHelper.stopAndSend() }
+        dialog.show()
+        voiceHelper.startListening()
+    }
+
+    private fun addNewLog(texto: String) {
+        val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+        val nota = Note(date = sdf.format(Date()), content = texto)
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            noteDao.insert(nota)
+            withContext(Dispatchers.Main) {
+                updateFeed()
+                rvNotes.scrollToPosition(0)
             }
         }
-
-        dialog.show()
-        view.postDelayed({ voiceHelper.startListening() }, 300)
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        // Isso garante que, se você fechar o app, o microfone e as tarefas
-        // em segundo plano do VoiceHelper sejam encerradas imediatamente.
-        if (::voiceHelper.isInitialized) {
-            voiceHelper.destroy()
-        }
+        if (::voiceHelper.isInitialized) voiceHelper.destroy()
     }
-
-    override fun onResume() {
-        super.onResume()
-        // Toda vez que você voltar para esta tela, ela busca os dados novos
-        updateFeed()
-    }
-
-    private fun updateFeed() {
-        lifecycleScope.launch(Dispatchers.IO) {
-            val db = AppDatabase.getDatabase(this@MainActivity)
-            val updatedNotes = db.noteDao().getAllNotes()
-
-            withContext(Dispatchers.Main) {
-                // Aqui passamos a lista nova para o seu Adapter
-                noteAdapter.updateNotes(updatedNotes)
-            }
-        }
-    }
-
-
-
 }

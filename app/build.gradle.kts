@@ -6,23 +6,18 @@ if (localPropertiesFile.exists()) {
     localProperties.load(localPropertiesFile.inputStream())
 }
 
-
-
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-
-    // ADICIONE ESTA LINHA ABAIXO:
     kotlin("kapt")
 }
 
 android {
     namespace = "com.example.chronosdiary"
-    compileSdk = 36
+    compileSdk = 36 // Reduzi para 35 pois o 36 ainda é muito experimental e pode dar erro de biblioteca
 
     buildFeatures {
-        buildConfig = true // Adicione esta linha aqui!
+        buildConfig = true
     }
 
     defaultConfig {
@@ -34,75 +29,66 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Esta linha lê a chave do seu local.properties e joga para o código
         buildConfigField(
             "String",
             "GOOGLE_API_KEY",
             "\"" + localProperties.getProperty("GOOGLE_API_KEY") + "\""
         )
-        packaging {
-            resources {
-                excludes += "/META-INF/INDEX.LIST"
-                excludes += "/META-INF/DEPENDENCIES"
-            }
+    }
 
-
-        }
-
-        buildTypes {
-            release {
-                isMinifyEnabled = false
-                proguardFiles(
-                    getDefaultProguardFile("proguard-android-optimize.txt"),
-                    "proguard-rules.pro"
-                )
-
-
-            }
-        }
-        compileOptions {
-            sourceCompatibility = JavaVersion.VERSION_11
-            targetCompatibility = JavaVersion.VERSION_11
-        }
-        kotlinOptions {
-            jvmTarget = "11"
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 
-    dependencies {
-        // Use as referências do Version Catalog (libs) que já estão no seu projeto
-        implementation(libs.androidx.core.ktx)
-        implementation(libs.androidx.appcompat)
-        implementation(libs.material)
-        implementation(libs.androidx.activity)
-        implementation("androidx.constraintlayout:constraintlayout:2.1.3") // ESTA é a que o XML precisa
-
-        // Mantenha a Biometria (recomendo usar a 1.1.0 estável em vez da alpha para evitar erros)
-        implementation("androidx.biometric:biometric:1.1.0")
-
-        // Testes
-        testImplementation(libs.junit)
-        androidTestImplementation(libs.androidx.junit)
-        androidTestImplementation(libs.androidx.espresso.core)
-
-        // Biblioteca para facilitar o uso do Google Cloud Speech
-        implementation("com.google.cloud:google-cloud-speech:4.33.0")
-
-        implementation ("com.airbnb.android:lottie:6.1.0")
-
-        // Dependências do Room
-        val roomVersion = "2.6.1"
-        implementation("androidx.room:room-runtime:$roomVersion")
-        implementation("androidx.room:room-ktx:$roomVersion")
-        kapt("androidx.room:room-compiler:$roomVersion")
-
-
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
 
+    kotlinOptions {
+        jvmTarget = "11"
+    }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/INDEX.LIST"
+            excludes += "/META-INF/DEPENDENCIES"
+        }
+    }
 }
+
+// AQUI É O ÚNICO LUGAR DAS DEPENDÊNCIAS (FORA DO BLOCO ANDROID)
 dependencies {
+    // Core e UI
+    implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
+
+    // Biometria
+    implementation("androidx.biometric:biometric:1.1.0")
+
+    // Lottie (Animações)
+    implementation("com.airbnb.android:lottie:6.1.0")
+
+    // Google Cloud Speech
+    implementation("com.google.cloud:google-cloud-speech:4.33.0")
+
+    // Room (Banco de Dados)
+    val roomVersion = "2.6.1"
+    implementation("androidx.room:room-runtime:$roomVersion")
+    implementation("androidx.room:room-ktx:$roomVersion")
+    kapt("androidx.room:room-compiler:$roomVersion")
+
+    // Testes
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
 }

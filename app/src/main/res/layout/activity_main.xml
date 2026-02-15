@@ -4,99 +4,131 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000000"> <androidx.core.widget.NestedScrollView
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:padding="24dp">
+    android:background="#000000">
 
-    <LinearLayout
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
-
-        <RelativeLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="32dp">
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-                <TextView
-                    android:id="@+id/text_header"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Meu Diário"
-                    android:textColor="#FFFFFF"
-                    android:textSize="28sp"
-                    android:fontFamily="sans-serif-black" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Sábado, 14 de Fevereiro"
-                    android:textColor="#50FFFFFF"
-                    android:textSize="14sp" />
-            </LinearLayout>
-
-            <com.google.android.material.imageview.ShapeableImageView
-                android:id="@+id/img_profile"
-                android:layout_width="45dp"
-                android:layout_height="45dp"
-                android:layout_alignParentEnd="true"
-                android:layout_centerVertical="true"
-                android:src="@drawable/ic_launcher_background"
-                app:shapeAppearanceOverlay="@style/CircleImage"
-                app:strokeColor="#20FFFFFF"
-                app:strokeWidth="1dp" />
-        </RelativeLayout>
+        android:layout_height="match_parent"
+        android:padding="24dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:layout_marginBottom="32dp">
-            <View android:layout_width="40dp" android:layout_height="40dp" android:background="@drawable/bg_dia_selecionado" android:layout_margin="4dp"/>
-            <View android:layout_width="40dp" android:layout_height="40dp" android:background="#10FFFFFF" android:layout_margin="4dp"/>
-            <View android:layout_width="40dp" android:layout_height="40dp" android:background="#10FFFFFF" android:layout_margin="4dp"/>
-        </LinearLayout>
+            android:orientation="vertical">
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recycler_notes"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:nestedScrollingEnabled="false" />
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            app:cardBackgroundColor="#151515"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="0dp">
-            <LinearLayout
+            <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:padding="20dp"
-                android:orientation="vertical">
-                <TextView
+                android:layout_marginBottom="32dp">
+
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Humor da Semana"
-                    android:textColor="#FFFFFF"
-                    android:textSize="16sp"
-                    android:textStyle="bold"/>
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="100dp"
-                    android:layout_marginTop="16dp"
-                    android:background="#05FFFFFF"/>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+                    android:orientation="vertical">
+                    <TextView
+                        android:id="@+id/text_header"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Meu Diário"
+                        android:textColor="#FFFFFF"
+                        android:textSize="28sp"
+                        android:fontFamily="sans-serif-black" />
+                    <TextView
+                        android:id="@+id/text_subheader"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Sábado, 14 de Fevereiro"
+                        android:textColor="#50FFFFFF"
+                        android:textSize="14sp" />
+                </LinearLayout>
 
-    </LinearLayout>
-</androidx.core.widget.NestedScrollView>
+                <com.google.android.material.imageview.ShapeableImageView
+                    android:id="@+id/img_profile"
+                    android:layout_width="45dp"
+                    android:layout_height="45dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:src="@drawable/ic_launcher_background"
+                    app:shapeAppearanceOverlay="@style/CircleImage"
+                    app:strokeColor="#20FFFFFF"
+                    app:strokeWidth="1dp" />
+            </RelativeLayout>
+
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none"
+                android:layout_marginBottom="32dp">
+                <LinearLayout
+                    android:id="@+id/calendar_container"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center" />
+            </HorizontalScrollView>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_notes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:visibility="gone" /> <LinearLayout
+            android:id="@+id/layout_vazio"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginTop="20dp"
+            android:visibility="visible"> <com.airbnb.lottie.LottieAnimationView
+            android:id="@+id/lottie_empty"
+            android:layout_width="250dp"
+            android:layout_height="250dp"
+            app:lottie_autoPlay="true"
+            app:lottie_loop="true"
+            app:lottie_rawRes="@raw/layout_vazio" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Nenhuma memória no vácuo deste dia..."
+                android:textColor="#60FFFFFF"
+                android:textSize="14sp"
+                android:layout_marginTop="0dp"
+                android:textAlignment="center" />
+        </LinearLayout>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_stats"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="40dp"
+                android:layout_marginBottom="80dp"
+                app:cardBackgroundColor="#151515"
+                app:cardCornerRadius="24dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="20dp"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Humor da Semana"
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp"
+                        android:textStyle="bold"/>
+                    <View
+                        android:id="@+id/chart_placeholder"
+                        android:layout_width="match_parent"
+                        android:layout_height="120dp"
+                        android:layout_marginTop="16dp"
+                        android:background="#05FFFFFF"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_mic"
@@ -105,11 +137,11 @@
         android:layout_gravity="bottom|end"
         android:layout_margin="24dp"
         app:backgroundTint="#00FF00"
-        app:srcCompat="@android:drawable/ic_mic"
+        app:srcCompat="@android:drawable/ic_btn_speak_now"
         app:fabCustomSize="64dp"
         app:maxImageSize="32dp"
-        app:shapeAppearanceOverlay="@style/CircleImage" />
-
-
+        app:tint="#000000"
+        app:shapeAppearanceOverlay="@style/CircleImage"
+        android:contentDescription="Gravar memória" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

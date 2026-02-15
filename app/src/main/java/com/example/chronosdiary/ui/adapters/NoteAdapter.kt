@@ -47,5 +47,7 @@ class NoteAdapter(private var notes: List<Note>) : RecyclerView.Adapter<NoteAdap
     }
 
 
+
+
     override fun getItemCount() = notes.size
 }
