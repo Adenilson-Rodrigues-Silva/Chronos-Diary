@@ -16,9 +16,11 @@ import java.net.URL
 
 class VoiceHelper(
     private val context: Context,
-    private val onResult: (String) -> Unit, // Callback global
-    private val onStatusChange: (String) -> Unit // Callback global
+    private val onResult: (String) -> Unit,
+    private val onStatusChange: (String) -> Unit
 ) {
+    // Variável que a NoteDetailActivity usa para saber se deve parar ou começar
+    var isListening: Boolean = false
 
     private var audioRecord: AudioRecord? = null
     private var isRecording = false
@@ -31,9 +33,7 @@ class VoiceHelper(
 
     private val audioStream = ByteArrayOutputStream()
 
-    // REMOVI o parâmetro daqui para não dar erro de "muitos argumentos" na Activity
     fun startListening() {
-
         if (ActivityCompat.checkSelfPermission(
                 context,
                 android.Manifest.permission.RECORD_AUDIO
@@ -45,6 +45,7 @@ class VoiceHelper(
 
         audioStream.reset()
         isRecording = true
+        isListening = true // Define como ouvindo para a Activity saber
         onStatusChange("LISTENING")
 
         audioRecord = AudioRecord(
@@ -72,6 +73,8 @@ class VoiceHelper(
     fun stopAndSend() {
         if (!isRecording) return
         isRecording = false
+        isListening = false // Define como parado para a Activity saber
+
         audioRecord?.stop()
         audioRecord?.release()
         audioRecord = null
@@ -124,7 +127,7 @@ class VoiceHelper(
             val finalResult = fullTranscript.toString().trim()
 
             withContext(Dispatchers.Main) {
-                onResult(finalResult) // Usa o callback da classe
+                onResult(finalResult)
                 onStatusChange("DONE")
             }
 
@@ -136,6 +139,7 @@ class VoiceHelper(
 
     fun destroy() {
         isRecording = false
+        isListening = false
         audioRecord?.stop()
         audioRecord?.release()
         audioRecord = null

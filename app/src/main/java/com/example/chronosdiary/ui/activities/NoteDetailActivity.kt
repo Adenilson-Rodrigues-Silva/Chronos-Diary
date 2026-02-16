@@ -1,5 +1,6 @@
 package com.example.chronosdiary.ui.activities
 
+import android.content.Context
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
@@ -678,12 +679,31 @@ class NoteDetailActivity : AppCompatActivity() {
     }
 
     private fun dispararEntradaPorVoz() {
+        // 1. Configuramos o clique no Lottie para ele saber PARAR
+        lottieMic.setOnClickListener {
+            if (voiceHelper.isListening) {
+                // FORÇAMOS a parada no motor de voz
+                voiceHelper.stopAndSend()
+
+                // FEEDBACK INSTANTÂNEO: Não esperamos o status vir do motor,
+                // já mudamos a UI na hora para o usuário não achar que travou.
+                tvStatusVoz.text = "PROCESSANDO NO CHRONOS..."
+                lottieMic.setAnimation(R.raw.save_note)
+                lottieMic.playAnimation()
+                lottieWave.visibility = View.GONE
+            } else {
+                // Se por acaso clicar e não estiver ouvindo, ele volta a ouvir
+                voiceHelper.startListening()
+                tvStatusVoz.text = "ESCUTANDO MEMÓRIA..."
+                lottieWave.visibility = View.VISIBLE
+            }
+        }
+
+        // 2. O comando inicial ao abrir a gaveta
         voiceLayout.visibility = View.VISIBLE
         lottieMic.playAnimation()
-        lottieWave.playAnimation()
+        lottieWave.visibility = View.VISIBLE
         tvStatusVoz.text = "ESCUTANDO MEMÓRIA..."
-
-        // Inicia a escuta real do Google
         voiceHelper.startListening()
     }
 
@@ -709,6 +729,7 @@ class NoteDetailActivity : AppCompatActivity() {
             }
         }
     }
+
 
 
 }
