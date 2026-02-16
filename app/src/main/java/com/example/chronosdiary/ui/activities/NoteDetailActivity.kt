@@ -1,7 +1,10 @@
 package com.example.chronosdiary.ui.activities
 
+
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
@@ -27,6 +30,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
 import androidx.cardview.widget.CardView
+import androidx.core.app.ActivityCompat
 import androidx.lifecycle.lifecycleScope
 import com.airbnb.lottie.LottieAnimationView
 import com.example.chronosdiary.R
@@ -38,6 +42,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
 
 
 class NoteDetailActivity : AppCompatActivity() {
@@ -107,6 +112,11 @@ class NoteDetailActivity : AppCompatActivity() {
         configurarMenuDeOpcoes()
         configurarFerramentasDeTexto()
         configurarCliquesDosEmojis()
+
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 1)
+        }
 
         // NOVO MÉTODOs
       //  verificarAcaoInicial()
@@ -679,24 +689,60 @@ class NoteDetailActivity : AppCompatActivity() {
     }
 
     private fun dispararEntradaPorVoz() {
-        // 1. Configuramos o clique no Lottie para ele saber PARAR
-        lottieMic.setOnClickListener {
+        lottieMic.isClickable = true
+
+        // Criamos uma função interna para não repetir código
+        val pararGravacao = {
             if (voiceHelper.isListening) {
-                // FORÇAMOS a parada no motor de voz
+                Log.d("CHRONOS_TESTE", "Parada solicitada!")
                 voiceHelper.stopAndSend()
 
-                // FEEDBACK INSTANTÂNEO: Não esperamos o status vir do motor,
-                // já mudamos a UI na hora para o usuário não achar que travou.
                 tvStatusVoz.text = "PROCESSANDO NO CHRONOS..."
                 lottieMic.setAnimation(R.raw.save_note)
                 lottieMic.playAnimation()
                 lottieWave.visibility = View.GONE
+            }
+        }
+
+
+        // Use o View.OnTouchListener para capturar o dedo encostando na tela NA HORA
+        lottieMic.setOnTouchListener { v, event ->
+            if (event.action == android.view.MotionEvent.ACTION_DOWN) {
+                v.performClick() // Isso tira o aviso amarelo!
+                Log.d("CHRONOS_LOG", "TOQUE DETECTADO NO CELL! isListening: ${voiceHelper.isListening}")
+
+                if (voiceHelper.isListening) {
+                    // EXECUTAR PARADA
+                    tvStatusVoz.text = "PROCESSANDO..."
+                    lottieWave.visibility = View.GONE
+                    lottieMic.setAnimation(R.raw.save_note)
+                    lottieMic.playAnimation()
+
+                    voiceHelper.stopAndSend()
+                    return@setOnTouchListener true // Indica que o toque foi consumido
+                }
+            }
+            false
+        }
+
+
+        // 1. Clique no Ícone
+        /*lottieMic.setOnClickListener {
+            Log.d("CHRONOS_TESTE", "Clique no Mic detectado!")
+            if (voiceHelper.isListening) {
+                pararGravacao()
             } else {
-                // Se por acaso clicar e não estiver ouvindo, ele volta a ouvir
                 voiceHelper.startListening()
                 tvStatusVoz.text = "ESCUTANDO MEMÓRIA..."
                 lottieWave.visibility = View.VISIBLE
             }
+        }*/
+
+        // 2. O PULO DO GATO: Clique no fundo da gaveta (Área escura)
+        // Se o clique no Mic falhar, esse aqui captura o toque no celular real
+        voiceLayout.setOnClickListener {
+            Log.d("CHRONOS_TESTE", "Clique no Layout detectado!")
+            pararGravacao()
         }
 
         // 2. O comando inicial ao abrir a gaveta

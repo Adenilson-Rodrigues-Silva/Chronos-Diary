@@ -24,8 +24,8 @@ android {
         applicationId = "com.example.chronosdiary"
         minSdk = 25
         targetSdk = 36
-        versionCode = 3
-        versionName = "3.2"
+        versionCode = 4
+        versionName = "4.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

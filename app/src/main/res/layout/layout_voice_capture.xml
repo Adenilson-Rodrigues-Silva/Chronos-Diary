@@ -10,6 +10,11 @@
     android:gravity="center_horizontal"
     android:orientation="vertical"
     android:paddingBottom="40dp"
+
+    android:clickable="true"
+    android:focusable="true"
+    android:focusableInTouchMode="true"
+
     app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
     <View
@@ -33,7 +38,8 @@
         android:layout_height="120dp"
         app:lottie_autoPlay="true"
         app:lottie_loop="true"
-        app:lottie_rawRes="@raw/mic_verde_test_2" />
+        app:lottie_rawRes="@raw/mic_verde_test_2"
+        android:background="?attr/selectableItemBackgroundBorderless"/>
 
     <TextView
         android:id="@+id/tv_status_voz"
