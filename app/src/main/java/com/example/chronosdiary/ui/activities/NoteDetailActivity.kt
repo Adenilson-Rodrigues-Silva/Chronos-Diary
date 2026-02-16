@@ -32,6 +32,7 @@ import com.example.chronosdiary.R
 import com.example.chronosdiary.data.AppDatabase
 import com.example.chronosdiary.data.model.Note
 import com.example.chronosdiary.utils.VoiceHelper
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -106,8 +107,36 @@ class NoteDetailActivity : AppCompatActivity() {
         configurarFerramentasDeTexto()
         configurarCliquesDosEmojis()
 
-        // NOVO MÉTODO
-        verificarAcaoInicial()
+        // NOVO MÉTODOs
+      //  verificarAcaoInicial()
+
+
+
+// GARANTIA: Força ele a ficar invisível e escondido no início
+
+
+        // --- CONFIGURAÇÃO DA MEIA TELA (BOTTOM SHEET) ---
+        // 1. Referencia o layout que agora tem o ID 'voice_sheet'
+        val voiceSheet = findViewById<LinearLayout>(R.id.voice_sheet)
+        val bottomSheetBehavior = BottomSheetBehavior.from(voiceSheet)
+
+        voiceSheet.visibility = View.GONE
+        bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
+
+        // 2. Começa escondido (lá embaixo)
+        bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
+
+        // 3. O botão que abre a gravação (usando o ID correto do XML)
+        val btnMicAbreGaveta = findViewById<ImageButton>(R.id.btn_detail_mic)
+        btnMicAbreGaveta.setOnClickListener {
+            // Quando clica manualmente, nós mostramos a gaveta
+            voiceSheet.visibility = View.VISIBLE
+            bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
+            dispararEntradaPorVoz()
+        }
+        // ... dentro do onCreate logo após configurar o voiceSheet e o behavior ...
+        verificarAcaoInicial(voiceSheet, bottomSheetBehavior)
+
     }
 
     private fun inicializarComponentes() {
@@ -120,10 +149,19 @@ class NoteDetailActivity : AppCompatActivity() {
         barMoodSelection = findViewById(R.id.bar_mood_selection)
 
         // Mapeando a GAVETA DE VOZ (Include)
-        voiceLayout = findViewById(R.id.layout_voice_capture)
+       // val voiceSheet = findViewById<LinearLayout>(R.id.voice_sheet)
+        //voiceLayout = findViewById(R.id.layout_voice_capture)
+       // lottieMic = findViewById(R.id.lottieMic)
+        //lottieWave = findViewById(R.id.lottie_visualizer)
+        //tvStatusVoz = findViewById(R.id.tv_status_voz)
+
+        // CORREÇÃO DOS IDS DA GAVETA
+        voiceLayout = findViewById(R.id.voice_sheet) // Use o ID novo 'voice_sheet'
         lottieMic = findViewById(R.id.lottieMic)
         lottieWave = findViewById(R.id.lottie_visualizer)
         tvStatusVoz = findViewById(R.id.tv_status_voz)
+
+
 
         // Inicializando o VoiceHelper
         voiceHelper = VoiceHelper(
@@ -520,42 +558,47 @@ class NoteDetailActivity : AppCompatActivity() {
     // Converte o conteúdo formatado do EditText para HTML e sincroniza a atualização no banco de dados
     private fun salvarNota() {
         val textoParaSalvar = Html.toHtml(etContent.text, Html.TO_HTML_PARAGRAPH_LINES_CONSECUTIVE)
-        val dataAtual = tvDate.text.toString()
+
+        // PADRONIZAÇÃO: Criamos a data no formato dd/MM/yyyy para o filtro da Main funcionar
+        val sdfBanco = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
+        val dataParaOBanco = sdfBanco.format(java.util.Date())
+
+        Log.d("CHRONOS_DEBUG", "Iniciando salvamento. ID atual: $noteId | Data: $dataParaOBanco")
 
         lifecycleScope.launch(Dispatchers.IO) {
-            val db = AppDatabase.getDatabase(this@NoteDetailActivity)
+            try {
+                val db = AppDatabase.getDatabase(this@NoteDetailActivity)
 
-            // Verificamos se a nota é nova (ID -1 ou 0)
-            if (noteId <= 0L) {
-                // NOTA NOVA: Criamos um objeto Note para inserir no banco
-                val novaNota = Note(
-                    content = textoParaSalvar,
-                    date = dataAtual
-                    // Adicione aqui outros campos se houver (ex: mood = "neutral")
-                )
+                if (noteId <= 0L) {
+                    // CENÁRIO: NOTA NOVA
+                    val novaNota = Note(
+                        date = dataParaOBanco, // Salva "16/02/2026"
+                        content = textoParaSalvar
+                    )
 
-                // Inserimos e pegamos o novo ID gerado
-                val novoId = db.noteDao().insert(novaNota)
-                noteId = novoId // Atualizamos a variável global
+                    val novoId = db.noteDao().insert(novaNota)
+                    noteId = novoId
 
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(this@NoteDetailActivity, "Memória Salva!", Toast.LENGTH_SHORT).show()
-                    finish() // Fecha a tela após salvar a primeira vez
-                }
-            } else {
-                // NOTA EXISTENTE: Buscamos a nota atual e atualizamos
-                val noteExistente = db.noteDao().getNoteById(noteId)
-                noteExistente?.let {
-                    it.content = textoParaSalvar
-                    // Se quiser atualizar a data ao editar, descomente a linha abaixo:
-                    // it.date = dataAtual
-
-                    db.noteDao().update(it)
                     withContext(Dispatchers.Main) {
-                        Toast.makeText(this@NoteDetailActivity, "Sincronizado!", Toast.LENGTH_SHORT).show()
-                        finish()
+                        Toast.makeText(this@NoteDetailActivity, "Memória Salva!", Toast.LENGTH_SHORT).show()
+                        etContent.postDelayed({ finish() }, 300)
+                    }
+                } else {
+                    // CENÁRIO: EDITAR EXISTENTE
+                    val noteExistente = db.noteDao().getNoteById(noteId)
+                    if (noteExistente != null) {
+                        noteExistente.content = textoParaSalvar
+                        // Mantemos a data original da nota para ela não "pular" de dia no calendário
+                        db.noteDao().update(noteExistente)
+
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@NoteDetailActivity, "Sincronizado!", Toast.LENGTH_SHORT).show()
+                            finish()
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                Log.e("CHRONOS_ERROR", "Erro ao salvar: ${e.message}")
             }
         }
     }
@@ -619,10 +662,18 @@ class NoteDetailActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun verificarAcaoInicial() {
-        val deveIniciarVoz = intent.getBooleanExtra("START_VOICE", false)
-        if (deveIniciarVoz) {
+    private fun verificarAcaoInicial(sheet: View, behavior: BottomSheetBehavior<LinearLayout>) {
+        val noteId = intent.getLongExtra("NOTE_ID", -1L)
+        val startVoice = intent.getBooleanExtra("START_VOICE", false)
+
+        if (startVoice && noteId == -1L) {
+            sheet.visibility = View.VISIBLE
+            behavior.state = BottomSheetBehavior.STATE_EXPANDED
             dispararEntradaPorVoz()
+        } else {
+            // Isso aqui mata o problema dos prints 2 e 4
+            sheet.visibility = View.GONE
+            behavior.state = BottomSheetBehavior.STATE_HIDDEN
         }
     }
 
@@ -658,5 +709,7 @@ class NoteDetailActivity : AppCompatActivity() {
             }
         }
     }
+
+
 }
 

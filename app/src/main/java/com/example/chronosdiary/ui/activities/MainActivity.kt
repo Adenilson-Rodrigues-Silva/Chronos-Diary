@@ -196,33 +196,33 @@ class MainActivity : AppCompatActivity() {
 
     private fun filtrarNotasPorData(data: Calendar) {
         val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-        val dataAlvo = sdf.format(data.time)
+        val dataAlvo = sdf.format(data.time).trim()
+
+        Log.d("CHRONOS_FEED", "Filtrando notas para o dia: $dataAlvo")
 
         lifecycleScope.launch(Dispatchers.IO) {
-            val todas = noteDao.getAllNotes()
-            // O segredo do Feed: Usamos contains para ignorar a hora exata
-            val filtradas = todas.filter { it.date.contains(dataAlvo) }
+            try {
+                val todas = noteDao.getAllNotes()
+                // Filtra notas que tenham EXATAMENTE essa data
+                val filtradas = todas.filter { it.date.trim() == dataAlvo }
 
-            withContext(Dispatchers.Main) {
-                // Atualiza o adapter com a lista filtrada
-                noteAdapter.updateNotes(filtradas)
+                withContext(Dispatchers.Main) {
+                    noteAdapter.updateNotes(filtradas)
 
-                val layoutVazio = findViewById<LinearLayout>(R.id.layout_vazio)
-                val rvNotes = findViewById<RecyclerView>(R.id.recycler_notes)
+                    val layoutVazio = findViewById<LinearLayout>(R.id.layout_vazio)
+                    val rvNotes = findViewById<RecyclerView>(R.id.recycler_notes)
 
-                if (filtradas.isEmpty()) {
-                    // Se não tem notas: Mostra Astronauta, Esconde Lista
-                    layoutVazio?.visibility = View.VISIBLE
-                    rvNotes?.visibility = View.GONE
-
-                    // Força a animação do astronauta a rodar
-                    val lottieEmpty = findViewById<LottieAnimationView>(R.id.lottie_empty)
-                    lottieEmpty?.playAnimation()
-                } else {
-                    // Se tem notas: Esconde Astronauta, Mostra Lista
-                    layoutVazio?.visibility = View.GONE
-                    rvNotes?.visibility = View.VISIBLE
+                    if (filtradas.isEmpty()) {
+                        layoutVazio?.visibility = View.VISIBLE
+                        rvNotes?.visibility = View.GONE
+                        findViewById<LottieAnimationView>(R.id.lottie_empty)?.playAnimation()
+                    } else {
+                        layoutVazio?.visibility = View.GONE
+                        rvNotes?.visibility = View.VISIBLE
+                    }
                 }
+            } catch (e: Exception) {
+                Log.e("CHRONOS_ERROR", "Erro ao filtrar: ${e.message}")
             }
         }
     }
@@ -348,6 +348,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         // Isso força o app a recarregar as notas do banco toda vez que você volta à tela principal
         updateFeed()
+
     }
 
     private fun alternarMenuFab() {
