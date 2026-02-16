@@ -18,6 +18,8 @@ import android.text.style.ImageSpan
 import android.text.style.StyleSpan
 import android.text.style.UnderlineSpan
 import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.widget.EditText
 import android.widget.ImageButton
@@ -27,10 +29,13 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
+import androidx.appcompat.widget.Toolbar
 import androidx.cardview.widget.CardView
 import androidx.core.app.ActivityCompat
+import androidx.core.content.res.ResourcesCompat
 import androidx.lifecycle.lifecycleScope
 import com.airbnb.lottie.LottieAnimationView
 import com.example.chronosdiary.R
@@ -44,28 +49,31 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 
-
 class NoteDetailActivity : AppCompatActivity() {
 
     // 1. PROPRIEDADES E SELEÇÃO DE MÍDIA
     // 1. Onde você pede a "chave permanente" para o Android
-    private val pickMedia = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) {
-            try {
-                // Pede permissão permanente para ler este arquivo específico
-                val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION
-                contentResolver.takePersistableUriPermission(uri, takeFlags)
+    private val pickMedia =
+        registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            if (uri != null) {
+                try {
+                    // Pede permissão permanente para ler este arquivo específico
+                    val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    contentResolver.takePersistableUriPermission(uri, takeFlags)
 
-                // Agora sim, insere no texto
-                inserirImagemNoTexto(uri)
-            } catch (e: Exception) {
-                Log.e("CHRONOS", "Erro ao persistir permissão: ${e.message}")
-                inserirImagemNoTexto(uri) // Tenta inserir mesmo se falhar a persistência
+                    // Agora sim, insere no texto
+                    inserirImagemNoTexto(uri)
+                } catch (e: Exception) {
+                    Log.e("CHRONOS", "Erro ao persistir permissão: ${e.message}")
+                    inserirImagemNoTexto(uri) // Tenta inserir mesmo se falhar a persistência
+                }
             }
         }
-    }
 
-   // private lateinit var voiceLayout: View
+    // private lateinit var voiceLayout: View
+
+    private var fonteAtivaAtual: Typeface? = null
+
 
     private lateinit var etContent: EditText
     private lateinit var btnBack: ImageButton
@@ -99,55 +107,55 @@ class NoteDetailActivity : AppCompatActivity() {
     // ... restante das suas variáveis (database, etc)
 
 
-
-
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_note_detail)
 
+        // 1. Toolbar (A que você achou o ID correto)
+        val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar_detail)
+        setSupportActionBar(toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.setHomeAsUpIndicator(R.drawable.ic_arrow_back) // Voltar
+        supportActionBar?.title = ""
+
+        // 2. Inicializações
         inicializarComponentes()
         carregarDadosDaNota()
         configurarBotoesPrincipais()
-        configurarMenuDeOpcoes()
-        configurarFerramentasDeTexto()
+        configurarFerramentasDeTexto() // Sua função gigante
         configurarCliquesDosEmojis()
 
+        // 3. Removi a chamada da configurarMenuDeOpcoes() porque vamos usar o menu oficial da Toolbar
+        // ... restante do código do BottomSheet (Voz) ...
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+
+        // 4. PERMISSÕES
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 1)
         }
 
-        // NOVO MÉTODOs
-      //  verificarAcaoInicial()
-
-
-
-// GARANTIA: Força ele a ficar invisível e escondido no início
-
-
-        // --- CONFIGURAÇÃO DA MEIA TELA (BOTTOM SHEET) ---
-        // 1. Referencia o layout que agora tem o ID 'voice_sheet'
+        // 5. CONFIGURAÇÃO DA GAVETA DE VOZ (BOTTOM SHEET)
         val voiceSheet = findViewById<LinearLayout>(R.id.voice_sheet)
         val bottomSheetBehavior = BottomSheetBehavior.from(voiceSheet)
 
+        // Estado inicial: Escondido
         voiceSheet.visibility = View.GONE
         bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
 
-        // 2. Começa escondido (lá embaixo)
-        bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
-
-        // 3. O botão que abre a gravação (usando o ID correto do XML)
+        // 6. CLIQUE PARA ABRIR A GRAVAÇÃO
         val btnMicAbreGaveta = findViewById<ImageButton>(R.id.btn_detail_mic)
         btnMicAbreGaveta.setOnClickListener {
-            // Quando clica manualmente, nós mostramos a gaveta
             voiceSheet.visibility = View.VISIBLE
             bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
             dispararEntradaPorVoz()
         }
-        // ... dentro do onCreate logo após configurar o voiceSheet e o behavior ...
-        verificarAcaoInicial(voiceSheet, bottomSheetBehavior)
 
+        // 7. VERIFICAÇÃO DE AÇÕES EXTERNAS
+        verificarAcaoInicial(voiceSheet, bottomSheetBehavior)
     }
 
     private fun inicializarComponentes() {
@@ -160,9 +168,9 @@ class NoteDetailActivity : AppCompatActivity() {
         barMoodSelection = findViewById(R.id.bar_mood_selection)
 
         // Mapeando a GAVETA DE VOZ (Include)
-       // val voiceSheet = findViewById<LinearLayout>(R.id.voice_sheet)
+        // val voiceSheet = findViewById<LinearLayout>(R.id.voice_sheet)
         //voiceLayout = findViewById(R.id.layout_voice_capture)
-       // lottieMic = findViewById(R.id.lottieMic)
+        // lottieMic = findViewById(R.id.lottieMic)
         //lottieWave = findViewById(R.id.lottie_visualizer)
         //tvStatusVoz = findViewById(R.id.tv_status_voz)
 
@@ -173,7 +181,6 @@ class NoteDetailActivity : AppCompatActivity() {
         tvStatusVoz = findViewById(R.id.tv_status_voz)
 
 
-
         // Inicializando o VoiceHelper
         voiceHelper = VoiceHelper(
             context = this,
@@ -181,7 +188,8 @@ class NoteDetailActivity : AppCompatActivity() {
                 runOnUiThread {
                     // 1. Insere o texto transcrito
                     val textoAntigo = etContent.text.toString()
-                    val novoTexto = if (textoAntigo.isEmpty()) textoTranscritp else "$textoAntigo $textoTranscritp"
+                    val novoTexto =
+                        if (textoAntigo.isEmpty()) textoTranscritp else "$textoAntigo $textoTranscritp"
                     etContent.setText(novoTexto)
                     etContent.setSelection(etContent.text.length)
 
@@ -196,11 +204,12 @@ class NoteDetailActivity : AppCompatActivity() {
             },
             onStatusChange = { status ->
                 runOnUiThread {
-                    when(status) {
+                    when (status) {
                         "LISTENING" -> {
                             tvStatusVoz.text = "ESCUTANDO MEMÓRIA..."
                             lottieWave.visibility = View.VISIBLE
                         }
+
                         "PROCESSING" -> {
                             tvStatusVoz.text = "PROCESSANDO NO CHRONOS..."
                             // TROCA PARA A ANIMAÇÃO DE SAVE QUE VOCÊ PEDIU
@@ -208,6 +217,7 @@ class NoteDetailActivity : AppCompatActivity() {
                             lottieMic.playAnimation()
                             lottieWave.visibility = View.GONE // Esconde as ondas
                         }
+
                         "ERROR" -> {
                             tvStatusVoz.text = "ERRO DE CONEXÃO"
                             lottieMic.cancelAnimation()
@@ -233,7 +243,8 @@ class NoteDetailActivity : AppCompatActivity() {
         val btnToggleMood = findViewById<ImageButton>(R.id.btn_toggle_mood)
         val btnDetailMic = findViewById<ImageButton>(R.id.btn_detail_mic)
         val btnAddImage = findViewById<ImageButton>(R.id.btn_add_image)
-        val btnSave = findViewById<com.google.android.material.floatingactionbutton.FloatingActionButton>(R.id.fab_save_changes)
+        val btnSave =
+            findViewById<com.google.android.material.floatingactionbutton.FloatingActionButton>(R.id.fab_save_changes)
 
         // 1. Abrir/Fechar Menu de Formatação (B)
         btnToggleFormat.setOnClickListener {
@@ -271,54 +282,49 @@ class NoteDetailActivity : AppCompatActivity() {
         }
     }
 
-    private fun configurarMenuDeOpcoes() {
-        val btnMenu = findViewById<ImageButton>(R.id.btn_more_options)
-        val neonColor = Color.parseColor("#00FFCC")
-
-        btnMenu.setOnClickListener { view ->
-            val popup = PopupMenu(this, view)
-            popup.menuInflater.inflate(R.menu.menu_note_detail, popup.menu)
-
-            try {
-                val method = popup.menu.javaClass.getDeclaredMethod("setOptionalIconsVisible", Boolean::class.javaPrimitiveType)
-                method.isAccessible = true
-                method.invoke(popup.menu, true)
-            } catch (e: Exception) {}
-
-            for (i in 0 until popup.menu.size()) {
-                popup.menu.getItem(i).icon?.setTint(neonColor)
-            }
-
-            ////TUDO DO MENU SUSPENÇÃO É AQUI
-            popup.setOnMenuItemClickListener { item ->
-                when (item.itemId) {
-                    R.id.action_delete -> {
-                        confirmarExclusao()
-                        Toast.makeText(this, "Ação de apagar: Amanhã!", Toast.LENGTH_SHORT).show()
-                        true
-                    }
-                    R.id.action_info -> { // O ID que você colocou no XML do menu
-                        exibirDetalhesDaNota()
-                        true
-                    }
-                    else -> false
-                }
-            }
-            popup.show()
-        }
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.menu_note_detail, menu)
+        return true
     }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            android.R.id.home -> { // Clique na setinha de voltar
+                finish()
+                return true
+            }
+
+            R.id.action_font -> {
+                mostrarDialogoDeFontes() // Vamos criar esta agora
+                return true
+            }
+
+            R.id.action_delete -> {
+                confirmarExclusao()
+                return true
+            }
+
+            R.id.action_info -> {
+                exibirDetalhesDaNota()
+                return true
+            }
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
 
     private fun configurarFerramentasDeTexto() {
         val btnBold = findViewById<ImageButton>(R.id.format_bold)
-        val btnItalic = findViewById<ImageButton>(R.id.format_italic) ?: return // O ?: return evita crash se o ID sumir
+        val btnItalic = findViewById<ImageButton>(R.id.format_italic) ?: return
         val btnUnderline = findViewById<ImageButton>(R.id.format_underline) ?: return
-
         val btnMarker = findViewById<ImageButton>(R.id.btn_text_color)
+
 
         val colorCyan = ColorStateList.valueOf(Color.parseColor("#00FFCC"))
         val colorWhite = ColorStateList.valueOf(Color.WHITE)
 
-        // 1. NEGRITO
+
+        // --- 2. NEGRITO (SELEÇÃO OU ESCRITA) ---
         btnBold.setOnClickListener {
             val start = etContent.selectionStart
             val end = etContent.selectionEnd
@@ -327,12 +333,10 @@ class NoteDetailActivity : AppCompatActivity() {
             } else {
                 isBoldActive = !isBoldActive
                 btnBold.imageTintList = if (isBoldActive) colorCyan else colorWhite
-                if (!isBoldActive) removerEstilosDaPosicaoAtual(StyleSpan::class.java, Typeface.BOLD)
             }
-            barFormatting.visibility = View.GONE
         }
 
-        // 2. ITÁLICO
+        // --- 3. ITÁLICO (SELEÇÃO OU ESCRITA) ---
         btnItalic.setOnClickListener {
             val start = etContent.selectionStart
             val end = etContent.selectionEnd
@@ -341,12 +345,10 @@ class NoteDetailActivity : AppCompatActivity() {
             } else {
                 isItalicActive = !isItalicActive
                 btnItalic.imageTintList = if (isItalicActive) colorCyan else colorWhite
-                if (!isItalicActive) removerEstilosDaPosicaoAtual(StyleSpan::class.java, Typeface.ITALIC)
             }
-            barFormatting.visibility = View.GONE
         }
 
-        // 3. SUBLINHADO
+        // --- 4. SUBLINHADO (SELEÇÃO OU ESCRITA) ---
         btnUnderline.setOnClickListener {
             val start = etContent.selectionStart
             val end = etContent.selectionEnd
@@ -355,37 +357,71 @@ class NoteDetailActivity : AppCompatActivity() {
             } else {
                 isUnderlineActive = !isUnderlineActive
                 btnUnderline.imageTintList = if (isUnderlineActive) colorCyan else colorWhite
-                if (!isUnderlineActive) removerEstilosDaPosicaoAtual(UnderlineSpan::class.java)
             }
-            barFormatting.visibility = View.GONE
         }
 
-        // 4. MARCADOR NEON (AQUI ESTÁ ELE!)
+        // --- 5. MARCADOR NEON ---
         btnMarker.setOnClickListener {
-            val start = etContent.selectionStart
-            val end = etContent.selectionEnd
-            if (start != end) {
+            if (etContent.selectionStart != etContent.selectionEnd) {
                 aplicarMarcadorNeon()
             } else {
                 Toast.makeText(this, "Selecione o texto primeiro", Toast.LENGTH_SHORT).show()
             }
-            barFormatting.visibility = View.GONE
         }
 
-        // --- TEXT WATCHER ---
+        // --- 6. TEXT WATCHER OTIMIZADO (FIM DO LAG) ---
         etContent.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: android.text.Editable?) {
-                if (isFormattingProgrammatically || s == null || s.isEmpty()) return
+                // 1. Bloqueio de segurança e proteção contra texto vazio
+                if (isFormattingProgrammatically || s == null || s.length == 0) return
+
                 val selectionStart = etContent.selectionStart
+                // Só processamos se o usuário estiver digitando (não selecionando texto)
                 if (selectionStart > 0 && selectionStart == etContent.selectionEnd) {
-                    try {
-                        val p = selectionStart - 1
-                        if (isBoldActive) s.setSpan(StyleSpan(Typeface.BOLD), p, selectionStart, Spanned.SPAN_EXCLUSIVE_INCLUSIVE)
-                        if (isItalicActive) s.setSpan(StyleSpan(Typeface.ITALIC), p, selectionStart, Spanned.SPAN_EXCLUSIVE_INCLUSIVE)
-                        if (isUnderlineActive) s.setSpan(UnderlineSpan(), p, selectionStart, Spanned.SPAN_EXCLUSIVE_INCLUSIVE)
-                    } catch (e: Exception) { e.printStackTrace() }
+                    val p = selectionStart - 1
+
+                    isFormattingProgrammatically = true
+
+                    // O SEGREDO: Só aplicar o Span se o estilo ativo NÃO existir naquela posição.
+                    // Isso evita criar centenas de objetos repetidos.
+
+                    // --- Lógica para FONTE ---
+                    fonteAtivaAtual?.let { fonte ->
+                        val spans = s.getSpans(p, selectionStart, CustomTypefaceSpan::class.java)
+                        if (spans.isEmpty()) {
+                            s.setSpan(CustomTypefaceSpan(fonte), p, selectionStart, Spanned.SPAN_EXCLUSIVE_INCLUSIVE)
+                        }
+                    }
+
+                    // --- Lógica para NEGRITO ---
+                    if (isBoldActive) {
+                        val spans = s.getSpans(p, selectionStart, StyleSpan::class.java)
+                        val jaTemNegrito = spans.any { it.style == Typeface.BOLD }
+                        if (!jaTemNegrito) {
+                            s.setSpan(StyleSpan(Typeface.BOLD), p, selectionStart, Spanned.SPAN_EXCLUSIVE_INCLUSIVE)
+                        }
+                    }
+
+                    // --- Lógica para ITÁLICO ---
+                    if (isItalicActive) {
+                        val spans = s.getSpans(p, selectionStart, StyleSpan::class.java)
+                        val jaTemItalico = spans.any { it.style == Typeface.ITALIC }
+                        if (!jaTemItalico) {
+                            s.setSpan(StyleSpan(Typeface.ITALIC), p, selectionStart, Spanned.SPAN_EXCLUSIVE_INCLUSIVE)
+                        }
+                    }
+
+                    // --- Lógica para SUBLINHADO ---
+                    if (isUnderlineActive) {
+                        val spans = s.getSpans(p, selectionStart, UnderlineSpan::class.java)
+                        if (spans.isEmpty()) {
+                            s.setSpan(UnderlineSpan(), p, selectionStart, Spanned.SPAN_EXCLUSIVE_INCLUSIVE)
+                        }
+                    }
+
+                    isFormattingProgrammatically = false
                 }
             }
         })
@@ -393,17 +429,6 @@ class NoteDetailActivity : AppCompatActivity() {
 
 // --- FUNÇÕES AUXILIARES
 
-    private fun <T> removerEstilosDaPosicaoAtual(classe: Class<T>, styleType: Int? = null) {
-        val selection = etContent.selectionStart
-        val spannable = etContent.text
-        val spans = spannable.getSpans(selection, selection, classe)
-        for (span in spans) {
-            if (styleType == null || (span is StyleSpan && span.style == styleType)) {
-                val start = spannable.getSpanStart(span)
-                spannable.setSpan(span, start, selection, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            }
-        }
-    }
 
     // Função auxiliar para o underline não dar erro de índice
     private fun aplicarEstiloSelecaoUnderline() {
@@ -418,9 +443,16 @@ class NoteDetailActivity : AppCompatActivity() {
             if (spans.isNotEmpty()) {
                 for (span in spans) spannable.removeSpan(span)
             } else {
-                spannable.setSpan(UnderlineSpan(), finalStart, finalEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                spannable.setSpan(
+                    UnderlineSpan(),
+                    finalStart,
+                    finalEnd,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
             }
-        } catch (e: Exception) { e.printStackTrace() }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     // Função auxiliar para o marcador não crashar
@@ -435,38 +467,33 @@ class NoteDetailActivity : AppCompatActivity() {
                 val spans = editable.getSpans(finalStart, finalEnd, BackgroundColorSpan::class.java)
                 for (span in spans) editable.removeSpan(span)
                 val corNeon = Color.argb(120, 0, 255, 204)
-                editable.setSpan(BackgroundColorSpan(corNeon), finalStart, finalEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                editable.setSpan(
+                    BackgroundColorSpan(corNeon),
+                    finalStart,
+                    finalEnd,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
             }
-        } catch (e: Exception) { e.printStackTrace() }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     // --- FUNÇÃO AUXILIAR (Adicione logo abaixo da função acima) ---
 // Isso evita crash e duplicação de código
-    private fun aplicarEstiloSelecao(style: Int) {
-        try {
-            val start = etContent.selectionStart
-            val end = etContent.selectionEnd
-            val spannable = etContent.text
+    private fun aplicarEstiloSelecao(estilo: Int) {
+        val start = etContent.selectionStart
+        val end = etContent.selectionEnd
+        val str = etContent.text ?: return
 
-            if (start == -1 || end == -1 || start == end) return
+        // Proteção: verifica se existe uma imagem no meio da seleção
+        // Se houver, aplicamos o estilo apenas no texto, preservando o ImageSpan
+        str.setSpan(StyleSpan(estilo), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
 
-            val finalStart = minOf(start, end)
-            val finalEnd = maxOf(start, end)
-
-            val spans = spannable.getSpans(finalStart, finalEnd, StyleSpan::class.java)
-            var spanRemovido = false
-            for (span in spans) {
-                if (span.style == style) {
-                    spannable.removeSpan(span)
-                    spanRemovido = true
-                }
-            }
-            if (!spanRemovido) {
-                spannable.setSpan(StyleSpan(style), finalStart, finalEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            }
-        } catch (e: Exception) {
-            Log.e("CHRONOS", "Erro aplicarEstilo: ${e.message}")
-        }
+        // Isso garante que o estilo de "escrita futura" não mude
+        isFormattingProgrammatically = true
+        etContent.setSelection(end)
+        isFormattingProgrammatically = false
     }
 
     // --- MANTIVE AS DEMAIS FUNÇÕES QUE VOCÊ JÁ TINHA ---
@@ -480,15 +507,18 @@ class NoteDetailActivity : AppCompatActivity() {
             val selectionStart = etContent.selectionStart
 
             // 2. Inserir a tag no texto e re-processar o HTML para exibir a imagem na hora
-            etContent.text.insert(selectionStart, Html.fromHtml(imageTag, Html.FROM_HTML_MODE_LEGACY, { source ->
-                val d = Drawable.createFromStream(contentResolver.openInputStream(uri), source)
-                d?.let {
-                    val width = 400
-                    val aspectRatio = it.intrinsicHeight.toFloat() / it.intrinsicWidth.toFloat()
-                    it.setBounds(0, 0, width, (width * aspectRatio).toInt())
-                }
-                d
-            }, null))
+            etContent.text.insert(
+                selectionStart,
+                Html.fromHtml(imageTag, Html.FROM_HTML_MODE_LEGACY, { source ->
+                    val d = Drawable.createFromStream(contentResolver.openInputStream(uri), source)
+                    d?.let {
+                        val width = 400
+                        val aspectRatio = it.intrinsicHeight.toFloat() / it.intrinsicWidth.toFloat()
+                        it.setBounds(0, 0, width, (width * aspectRatio).toInt())
+                    }
+                    d
+                }, null)
+            )
 
         } catch (e: Exception) {
             e.printStackTrace()
@@ -513,7 +543,8 @@ class NoteDetailActivity : AppCompatActivity() {
             val btn = findViewById<ImageButton>(id)
             btn?.setOnClickListener {
                 imgSelectedMood.setImageResource(data.first)
-                imgSelectedMood.imageTintList = ColorStateList.valueOf(Color.parseColor(data.second))
+                imgSelectedMood.imageTintList =
+                    ColorStateList.valueOf(Color.parseColor(data.second))
                 barMoodSelection.visibility = View.GONE
             }
         }
@@ -540,24 +571,38 @@ class NoteDetailActivity : AppCompatActivity() {
                                 d.setBounds(0, 0, width, (width * ratio).toInt())
                             }
                             drawable
-                        } catch (e: Exception) { null }
+                        } catch (e: Exception) {
+                            null
+                        }
                     }
 
                     // 1. Carrega o HTML básico
-                    val textoBruto = Html.fromHtml(it.content, Html.FROM_HTML_MODE_LEGACY, imageGetter, null)
+                    val textoBruto =
+                        Html.fromHtml(it.content, Html.FROM_HTML_MODE_LEGACY, imageGetter, null)
                     val spannable = android.text.SpannableStringBuilder(textoBruto)
 
                     // 2. CORREÇÃO DO MARCADOR: Procura fundos coloridos e aplica o Neon suave (Alpha 120)
-                    val spans = spannable.getSpans(0, spannable.length, BackgroundColorSpan::class.java)
+                    val spans =
+                        spannable.getSpans(0, spannable.length, BackgroundColorSpan::class.java)
                     for (span in spans) {
                         val start = spannable.getSpanStart(span)
                         val end = spannable.getSpanEnd(span)
                         // Pega a cor que veio (estourada) e coloca 120 de transparência
                         val corOriginal = span.backgroundColor
-                        val corNeonSuave = Color.argb(120, Color.red(corOriginal), Color.green(corOriginal), Color.blue(corOriginal))
+                        val corNeonSuave = Color.argb(
+                            120,
+                            Color.red(corOriginal),
+                            Color.green(corOriginal),
+                            Color.blue(corOriginal)
+                        )
 
                         spannable.removeSpan(span)
-                        spannable.setSpan(BackgroundColorSpan(corNeonSuave), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                        spannable.setSpan(
+                            BackgroundColorSpan(corNeonSuave),
+                            start,
+                            end,
+                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                        )
                     }
 
                     etContent.setText(spannable)
@@ -591,7 +636,11 @@ class NoteDetailActivity : AppCompatActivity() {
                     noteId = novoId
 
                     withContext(Dispatchers.Main) {
-                        Toast.makeText(this@NoteDetailActivity, "Memória Salva!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            this@NoteDetailActivity,
+                            "Memória Salva!",
+                            Toast.LENGTH_SHORT
+                        ).show()
                         etContent.postDelayed({ finish() }, 300)
                     }
                 } else {
@@ -603,7 +652,11 @@ class NoteDetailActivity : AppCompatActivity() {
                         db.noteDao().update(noteExistente)
 
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(this@NoteDetailActivity, "Sincronizado!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                this@NoteDetailActivity,
+                                "Sincronizado!",
+                                Toast.LENGTH_SHORT
+                            ).show()
                             finish()
                         }
                     }
@@ -635,7 +688,8 @@ class NoteDetailActivity : AppCompatActivity() {
             noteAtual?.let {
                 db.noteDao().delete(it) // Certifique-se que seu DAO tem a função delete
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@NoteDetailActivity, "Memória apagada!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@NoteDetailActivity, "Memória apagada!", Toast.LENGTH_SHORT)
+                        .show()
                     finish() // Volta para a tela principal
                 }
             }
@@ -652,7 +706,11 @@ class NoteDetailActivity : AppCompatActivity() {
         val tempoLeitura = if (palavras > 0) Math.ceil(palavras / 200.0).toInt() else 0
 
         // 2. Verificar se tem imagens (procura por ImageSpans no texto)
-        val temImagens = etContent.text.getSpans(0, etContent.text.length, android.text.style.ImageSpan::class.java).isNotEmpty()
+        val temImagens = etContent.text.getSpans(
+            0,
+            etContent.text.length,
+            android.text.style.ImageSpan::class.java
+        ).isNotEmpty()
         val statusMidia = if (temImagens) "Contém imagens" else "Apenas texto"
 
         // 3. Montar o Relatório
@@ -709,7 +767,10 @@ class NoteDetailActivity : AppCompatActivity() {
         lottieMic.setOnTouchListener { v, event ->
             if (event.action == android.view.MotionEvent.ACTION_DOWN) {
                 v.performClick() // Isso tira o aviso amarelo!
-                Log.d("CHRONOS_LOG", "TOQUE DETECTADO NO CELL! isListening: ${voiceHelper.isListening}")
+                Log.d(
+                    "CHRONOS_LOG",
+                    "TOQUE DETECTADO NO CELL! isListening: ${voiceHelper.isListening}"
+                )
 
                 if (voiceHelper.isListening) {
                     // EXECUTAR PARADA
@@ -753,30 +814,41 @@ class NoteDetailActivity : AppCompatActivity() {
         voiceHelper.startListening()
     }
 
-    private fun atualizarStatusVoz(status: String) {
-        val tvStatus = findViewById<TextView>(R.id.tv_status_voz) // O TextView que diz "ESCUTANDO..."
 
-        runOnUiThread {
-            when (status) {
-                "LISTENING" -> tvStatus.text = "ESCUTANDO MEMÓRIA..."
-                "PROCESSING" -> {
-                    tvStatus.text = "PROCESSANDO NO CHRONOS..."
-                    // Opcional: desativar o clique para não enviar duas vezes
-                    lottieMic.isClickable = false
-                }
-                "DONE" -> {
-                    lottieMic.isClickable = true
-                    voiceLayout.visibility = View.GONE
-                }
-                "ERROR" -> {
-                    tvStatus.text = "ERRO DE CONEXÃO"
-                    voiceLayout.postDelayed({ voiceLayout.visibility = View.GONE }, 2000)
-                }
+    // --- AQUI FICA O TRATAMENTO DO CLIQUE NO MENU ---
+
+
+    // --- AQUI VOCÊ CRIA A FUNÇÃO (Pode ser logo abaixo) ---
+    private fun mostrarDialogoDeFontes() {
+        val nomes = arrayOf("Orbitron", "Exo 2", "JetBrains")
+        val ids = arrayOf(R.font.orbitron_black, R.font.exo2_regular, R.font.jetbrainsmono_regular)
+
+        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            .setTitle("DNA da Fonte")
+            .setItems(nomes) { _, which ->
+                fonteAtivaAtual = ResourcesCompat.getFont(this, ids[which])
+                Toast.makeText(this, "Fonte alterada para o próximo caractere", Toast.LENGTH_SHORT)
+                    .show()
             }
-        }
+            .show()
     }
 
 
+    // COLOQUE ISSO NO FINAL DO ARQUIVO (FORA DA CLASSE)
+    class CustomTypefaceSpan(private val typeface: Typeface) :
+        android.text.style.MetricAffectingSpan() {
+        override fun updateDrawState(ds: android.text.TextPaint) {
+            ds.typeface = typeface
+        }
 
+        override fun updateMeasureState(p: android.text.TextPaint) {
+            p.typeface = typeface
+        }
+    }
 }
+
+
+
+
+
 
